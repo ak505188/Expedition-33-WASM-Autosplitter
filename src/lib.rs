@@ -1,12 +1,35 @@
 use core::num;
 use core::ops::Add;
 
+use asr::string::ArrayCString;
+use asr::timer;
 use asr::{Address, Process, future::next_tick, print_message};
 use asr::signature::Signature;
-use asr::game_engine::unreal::{Module, Version};
+use asr::game_engine::unreal::{self, Module, UObject, Version};
 
 asr::async_main!(stable);
 // asr::panic_handler!();
+
+struct State {
+    // gworld_name: String,
+}
+
+impl State {
+    pub fn update(process: &Process, module: Module) -> Self {
+        let gworld_name: u64 = match process.read_pointer_path(module.g_engine(), asr::PointerSize::Bit64, &[0x0, 0x18]) {
+            Ok(v) => v,
+            Err(_) => 0,
+        };
+        print_message(&format!("gworld_name: {:x}", gworld_name));
+        // let gworld_uobject = UObject::new(Address::new(gworld_name));
+        // let fname: ArrayCString<32> = gworld_uobject.get_fname(&process, &module).expect("Failed fname");
+        // print_message(&format!("fname: {}", fname.validate_utf8().expect("Failed conversion to utf8")));
+
+        State {
+            // gworld_name
+        }
+    }
+}
 
 async fn main() {
     // TODO: Set up some general state and settings.
@@ -37,7 +60,18 @@ async fn main() {
                     break;
                 }
 
+                State::update(&process, module);
+
                 loop {
+                    match timer::state() {
+                        timer::TimerState::NotRunning => {
+                            timer::start()
+                        },
+                        timer::TimerState::Running => {
+
+                        },
+                        _ => print_message("timer::state didn't match anything")
+                    }
                     // TODO: Do something on every tick.
                     next_tick().await;
                 }
