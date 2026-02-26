@@ -1,12 +1,9 @@
-use std::mem::MaybeUninit;
-
 use asr::string::{ArrayCString, ArrayWString};
 use asr::{timer};
 use asr::{Address, Address64, Process, future::next_tick, print_message};
 use asr::game_engine::unreal::{FNameKey, Module, Version};
-use asr::watcher::{Pair, Watcher};
+use asr::watcher::Watcher;
 use asr::PointerSize::Bit64;
-use bytemuck::CheckedBitPattern;
 
 asr::async_main!(stable);
 // asr::panic_handler!();
@@ -17,17 +14,17 @@ asr::async_main!(stable);
 //     "Sandfall-WinGDK-Shipping.exe"
 // ];
 
-const HEAVY_CINEMATICS: [&str;9] = [
-    "MCS_GobluOutro",
-    "MCS_PostDuallist",
-    "MCS_DiscoveringTheTruth_P2",
-    "CS_GPE_MonolithInterior_Locomotive_Monoco_To_Lumiere",
-    "CS_CleasFlyingHouse_DuallisteDeath",
-    "CS_CleasFlyingHouse_EvequeDeath",
-    "CS_CleasFlyingHouse_GobluDeath",
-    "CS_CleasFlyingHouse_LampmasterDeath",
-    "MCS_MirrorCleaOutro"
-];
+// const HEAVY_CINEMATICS: [&str;9] = [
+//     "MCS_GobluOutro",
+//     "MCS_PostDuallist",
+//     "MCS_DiscoveringTheTruth_P2",
+//     "CS_GPE_MonolithInterior_Locomotive_Monoco_To_Lumiere",
+//     "CS_CleasFlyingHouse_DuallisteDeath",
+//     "CS_CleasFlyingHouse_EvequeDeath",
+//     "CS_CleasFlyingHouse_GobluDeath",
+//     "CS_CleasFlyingHouse_LampmasterDeath",
+//     "MCS_MirrorCleaOutro"
+// ];
 
 struct State {
     module: Module,
@@ -50,11 +47,11 @@ struct GameState {
     is_changing_area: Watcher<bool>,
     is_changing_map: Watcher<bool>,
     is_pause_menu_visible: Watcher<bool>,
-    is_save_point_menu_visible: bool,
+    // is_save_point_menu_visible: bool,
     lsw_has_appeared: Watcher<bool>,
     time_played: Watcher<f64>,
-    finished_game_count: i32,
-    minimap_active: bool,
+    // finished_game_count: i32,
+    minimap_active: Watcher<bool>,
     pcm_in_game: Watcher<f32>,
     world: Watcher<String>,
 }
@@ -62,9 +59,9 @@ struct GameState {
 impl State {
     pub async fn init<'a>(process: &'a Process, process_name: &'a str) -> Self {
         let base_addr = process.get_module_address(process_name).unwrap();
-        print_message("Found base_addr");
         // let module_size = process.get_module_size(process_name).unwrap();
         // print_message("Found module size");
+        print_message("Found base_addr");
         let module = Module::wait_attach(&process, Version::V5_4, base_addr).await;
         print_message("Attached to module.");
         // let build_version = State::get_build_version(process, &module);
@@ -87,13 +84,13 @@ impl State {
                 cs_cinematic_serial_number: Watcher::new(),
                 cs_is_playing_cinematic: Watcher::new(),
                 cs_event_before_post_cinematic_transition_started: Watcher::new(),
-                finished_game_count: 0,
+                // finished_game_count: 0,
                 is_changing_area: Watcher::new(),
                 is_changing_map: Watcher::new(),
                 is_pause_menu_visible: Watcher::new(),
-                is_save_point_menu_visible: false,
+                // is_save_point_menu_visible: false,
                 lsw_has_appeared: Watcher::new(),
-                minimap_active: false,
+                minimap_active: Watcher::new(),
                 pcm_in_game: Watcher::new(),
                 time_played: Watcher::new(),
                 world: Watcher::new(),
@@ -102,35 +99,10 @@ impl State {
     }
 
     pub fn is_loading(&self) -> bool {
-        let state = &self.game_state;
-        let world = &state.world.pair.as_ref().unwrap().current;
-
-        if world == "Map_Game_Bootstrap" ||
-           state.is_changing_area.pair.unwrap().current ||
-           state.is_changing_map.pair.unwrap().current ||
-           state.lsw_has_appeared.pair.unwrap().current ||
-           (world != "Level_Main_Menu" && state.pcm_in_game.pair.unwrap().current < 0.5) {
-            return true
-        };
-
-        if state.cs_is_playing_cinematic.pair.unwrap().current && state.cs_cinematic_paused.pair.unwrap().current {
-            return true
-        };
-        // Certain cutscene segments hide expensive asset loads. Cannot write a general rule,
-        // so we list them explicitly as they are found:
-
-        // TODO: This doesn't work due to cs_event_before_post_cinematic_transition_started.
-        // It doesn't work how you'd expect. It's set to false instantly after cutscene ends.
-        // print_message(state.cs_cinematic_name.pair.as_ref().unwrap().current.as_str());
-        //
-        // if state.cs_cinematic_status.pair.unwrap().current == 0 &&
-        //    HEAVY_CINEMATICS.contains(&state.cs_cinematic_name.pair.as_ref().unwrap().current.as_str()) &&
-        //    state.cs_cinematic_serial_number.pair.unwrap().current == 3 &&
-        //    state.cs_event_before_post_cinematic_transition_started.pair.unwrap().current {
-        //     return true
-        // }
-
-        false
+        self.game_state.is_game_loading() ||
+        self.game_state.is_battle_loading() ||
+        self.game_state.is_cutscene_loading() ||
+        self.game_state.is_minimap_open()
     }
 
     fn get_build_version(process: &Process, module: &Module) -> u32 {
@@ -243,6 +215,33 @@ impl State {
             Err(_) => String::from("")
         };
         str
+    }
+}
+
+impl GameState {
+    fn is_game_loading(&self) -> bool {
+        let world = &self.world.pair.as_ref().unwrap().current;
+        world == "Map_Game_Bootstrap" ||
+        self.is_changing_area.pair.unwrap().current ||
+        self.is_changing_map.pair.unwrap().current ||
+        self.lsw_has_appeared.pair.unwrap().current ||
+        (world != "Level_Main_Menu" && self.pcm_in_game.pair.unwrap().current < 0.5)
+    }
+
+    fn is_battle_loading(&self) -> bool {
+        let battle_debug_last_flow_state = &self.battle_debug_last_flow_state.pair.as_ref().unwrap().current;
+        self.battle_flow_state.pair.unwrap().current == 2 && (
+        battle_debug_last_flow_state == "InitBattle" ||
+        battle_debug_last_flow_state == "LoadDependencies" ||
+        battle_debug_last_flow_state == "Dependencies loaded")
+    }
+
+    fn is_cutscene_loading(&self) -> bool {
+        self.cs_is_playing_cinematic.pair.unwrap().current && self.cs_cinematic_paused.pair.unwrap().current
+    }
+
+    fn is_minimap_open(&self) -> bool {
+        self.world.pair.as_ref().unwrap().current == "Level_WorldMap_Main_V2" && self.minimap_active.pair.unwrap().current
     }
 }
 
