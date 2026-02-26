@@ -4,6 +4,11 @@ use asr::{Address, Address64, Process, future::next_tick, print_message};
 use asr::game_engine::unreal::{FNameKey, Module, Version};
 use asr::watcher::Watcher;
 use asr::PointerSize::Bit64;
+use asr::settings::Gui;
+
+use crate::settings::Settings;
+
+mod settings;
 
 asr::async_main!(stable);
 // asr::panic_handler!();
@@ -144,8 +149,8 @@ impl State {
         let battle_flow_state: Option<u8> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x9b0]).ok();
         self.game_state.battle_flow_state.update(battle_flow_state);
 
-        let battle_end_state: Option<u8> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x920, 0x910]).ok();
-        self.game_state.battle_end_state.update(battle_end_state);
+        let battle_end_state: u8 = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x920, 0x910]).unwrap_or(u8::MAX);
+        self.game_state.battle_end_state.update_infallible(battle_end_state);
 
         let battle_manager_encounter_name = State::get_fname(process, &self.module, self.local_player, &[0x0, 0x30, 0x920, 0x190], String::from(""));
         self.game_state.battle_manager_encounter_name.update(Some(battle_manager_encounter_name));
@@ -181,6 +186,15 @@ impl State {
 
         let cs_event_before_post_cinematic_transition_started: bool = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x8a8, 0x298]).unwrap_or(false);
         self.game_state.cs_event_before_post_cinematic_transition_started.update(Some(cs_event_before_post_cinematic_transition_started));
+
+        let minimap_active_path;
+        if self.build_version >= 57661 {
+            minimap_active_path = [0x0, 0x30, 0x980, 0x3d0, 0x368];
+        } else {
+            minimap_active_path = [0x0, 0x30, 0x980, 0x3c8, 0x368];
+        }
+        let minimap_active: bool = process.read_pointer_path(self.local_player, Bit64, &minimap_active_path).unwrap_or(false);
+        self.game_state.minimap_active.update_infallible(minimap_active);
 
         self
     }
@@ -243,6 +257,10 @@ impl GameState {
     fn is_minimap_open(&self) -> bool {
         self.world.pair.as_ref().unwrap().current == "Level_WorldMap_Main_V2" && self.minimap_active.pair.unwrap().current
     }
+
+    fn is_battle_won(&self) -> bool {
+        self.battle_end_state.pair.unwrap().check(|t| *t == 0)
+    }
 }
 
 impl std::fmt::Debug for State {
@@ -256,10 +274,54 @@ impl std::fmt::Debug for State {
     }
 }
 
+fn should_split(state: &GameState, settings: &Settings) -> bool {
+    timer::set_variable("battle_name", &state.battle_manager_encounter_name.pair.as_ref().unwrap().current);
+    if state.is_battle_won() {
+        let battle_name = &state.battle_manager_encounter_name.pair.as_ref().unwrap().old;
+        return
+            (battle_name == "LU_Act1_MaelleNoTutorialCivilian" && settings.maelle_tutorial) ||
+            (battle_name == "SM_FirstLancelierNoTuto*1" && settings.sm_first_lancelier) ||
+            (battle_name == "SM_FirstPortier_NoTuto*1" && settings.sm_first_portier) ||
+            (battle_name == "SM_Volester_TutoFlying*1" && settings.sm_first_volesters) ||
+            (battle_name == "SM_Eveque_ShieldTutorial*1" && settings.sm_eveque) ||
+            (battle_name == "GO_Curator_JumpTutorial*1" && settings.fw_curator) ||
+            (battle_name == "GO_Goblu" && settings.flw_goblu) ||
+            (battle_name == "Petank_Blue" && settings.as_petank) ||
+            (battle_name == "AS_PotatoBagTank*1_IntroFight" && settings.as_robust_sakapatate) ||
+            (battle_name == "AS_PotatoBagBoss" && settings.as_ultimate_sakapatate) ||
+            (battle_name == "QUEST_BertrandBigHands*1" && settings.gv_bertrand) ||
+            (battle_name == "QUEST_DominiqueGiantFeet*1" && settings.gv_dominique) ||
+            (battle_name == "QUEST_MatthieuTheColossus*1" && settings.gv_matthieu) ||
+            (battle_name == "GV_Sciel*1" && settings.gv_sciel) ||
+            (battle_name == "EN_Francois" && settings.en_francois) ||
+            (battle_name == "SC_LampMaster" && settings.swc_lampmaster) ||
+            (battle_name == "FB_Chalier_GradientCounterTutorial*1" && settings.fb_chalier) ||
+            (battle_name == "FB_DuallisteLR" && settings.fb_dualliste ) ||
+            (battle_name == "MS_Monoco" && settings.ms_monoco) ||
+            (battle_name == "MM_Stalact_GradientAttackTutorial1" && settings.ms_stalact) ||
+            (battle_name == "OL_VersoDisappears_Chevaliere2" && settings.ol_chevaliers) ||
+            (battle_name == "OL_MirrorRenoir_FirstFight" && settings.ol_renoir) ||
+            (battle_name == "MF_Axon_Visages" && settings.visages_mask_keeper) ||
+            (battle_name == "SI_Glissando*1" && settings.sirene_glissando) ||
+            (battle_name == "SI_Axon_Sirene" && settings.sirene_sirene) ||
+            (battle_name == "SI_Axon_Sirene" && settings.sirene_sirene) ||
+            (battle_name == "FakePaintress" && settings.monolith_feetress) ||
+            (battle_name == "MM_MirrorRenoir" && settings.monolith_renoir) ||
+            (battle_name == "L_Boss_Paintress_P1_Phase1" && settings.monolith_paintress_p1) ||
+            (battle_name == "L_Boss_Paintress_P1" && settings.monolith_paintress_p2) ||
+            (battle_name == "L_Boss_Curator_P1_Phase1" && settings.lumiere_renoir_p1) ||
+            (battle_name == "L_Boss_Curator_P1" && settings.lumiere_renoir_p2) ||
+            (battle_name == "FinalBossVerso" && settings.lumiere_verso) ||
+            (battle_name == "FinalBossMaelle" && settings.lumiere_maelle)
+    }
+    false
+}
+
 async fn main() {
     // TODO: Set up some general state and settings.
 
     asr::print_message("Hello, World!");
+    let mut settings = settings::Settings::register();
 
     loop {
         let process_name = "SandFall-Win64-Shipping.exe";
@@ -271,6 +333,7 @@ async fn main() {
                 print_message(&format!("{:?}", state));
 
                 loop {
+                    settings.update();
                     state.update(&process);
                     match timer::state() {
                         timer::TimerState::NotRunning => {
@@ -284,6 +347,9 @@ async fn main() {
                             }
                         },
                         timer::TimerState::Running => {
+                            if should_split(&state.game_state, &settings) {
+                                timer::split();
+                            }
                             if state.is_loading() {
                                 timer::pause_game_time();
                             } else {
