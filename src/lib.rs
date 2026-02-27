@@ -5,11 +5,15 @@ use asr::game_engine::unreal::{FNameKey, Module, Version};
 use asr::watcher::Watcher;
 use asr::PointerSize::Bit64;
 use asr::settings::Gui;
-use std::collections::HashMap;
 
+
+use crate::gamestate::GameState;
 use crate::settings::Settings;
+use crate::splits::Splits;
 
+mod gamestate;
 mod settings;
+mod splits;
 
 asr::async_main!(stable);
 // asr::panic_handler!();
@@ -37,30 +41,6 @@ struct State {
     local_player: Address64,
     build_version: u32,
     game_state: GameState,
-    splits_map: HashMap<String, bool>,
-}
-
-struct GameState {
-    battle_end_state: Watcher<u8>,
-    battle_flow_state: Watcher<u8>,
-    battle_manager_encounter_name: Watcher<String>,
-    battle_debug_last_flow_state: Watcher<String>,
-    cs_cinematic_status: Watcher<u32>,
-    cs_cinematic_name: Watcher<String>,
-    cs_cinematic_serial_number: Watcher<u32>,
-    cs_cinematic_paused: Watcher<bool>,
-    cs_is_playing_cinematic: Watcher<bool>,
-    cs_event_before_post_cinematic_transition_started: Watcher<bool>,
-    is_changing_area: Watcher<bool>,
-    is_changing_map: Watcher<bool>,
-    is_pause_menu_visible: Watcher<bool>,
-    // is_save_point_menu_visible: bool,
-    lsw_has_appeared: Watcher<bool>,
-    time_played: Watcher<f64>,
-    // finished_game_count: i32,
-    minimap_active: Watcher<bool>,
-    pcm_in_game: Watcher<f32>,
-    world: Watcher<String>,
 }
 
 impl State {
@@ -243,65 +223,6 @@ impl State {
     }
 }
 
-impl GameState {
-    fn is_game_loading(&self) -> bool {
-        let world = &self.world.pair.as_ref().unwrap().current;
-        world == "Map_Game_Bootstrap" ||
-        self.is_changing_area.pair.unwrap().current ||
-        self.is_changing_map.pair.unwrap().current ||
-        self.lsw_has_appeared.pair.unwrap().current ||
-        (world != "Level_Main_Menu" && self.pcm_in_game.pair.unwrap().current < 0.5)
-    }
-
-    fn is_battle_loading(&self) -> bool {
-        let battle_debug_last_flow_state = &self.battle_debug_last_flow_state.pair.as_ref().unwrap().current;
-        self.battle_flow_state.pair.unwrap().current == 2 && (
-        battle_debug_last_flow_state == "InitBattle" ||
-        battle_debug_last_flow_state == "LoadDependencies" ||
-        battle_debug_last_flow_state == "Dependencies loaded")
-    }
-
-    fn is_cutscene_loading(&self) -> bool {
-        self.cs_is_playing_cinematic.pair.unwrap().current && self.cs_cinematic_paused.pair.unwrap().current
-    }
-
-    fn is_minimap_open(&self) -> bool {
-        self.world.pair.as_ref().unwrap().current == "Level_WorldMap_Main_V2" && self.minimap_active.pair.unwrap().current
-    }
-
-    fn is_in_battle(&self) -> bool {
-        self.battle_flow_state.pair.unwrap().current == 2
-    }
-
-    fn is_in_cutscene(&self) -> bool {
-        self.cs_is_playing_cinematic.pair.unwrap().current
-    }
-
-    fn has_cutscene_started(&self) -> bool {
-        self.cs_cinematic_name.pair.as_ref().unwrap().changed_from(&String::from(""))
-    }
-
-    fn is_cutscene_over(&self) -> bool {
-        self.cs_is_playing_cinematic.pair.unwrap().changed_to(&false)
-    }
-
-    fn is_battle_finished(&self) -> bool {
-        let battle_flow_state = match self.battle_flow_state.pair {
-            Some(v) => v,
-            None => return false
-        };
-        // print_message(&format!("bfs: {}, change_to_0: {}", battle_flow_state.current, battle_flow_state.changed_to(&0)));
-        let battle_end_state = self.battle_end_state.pair.unwrap();
-        // print_message(&format!("battle_end_state cur: {}, old: {}", battle_end_state.current, battle_end_state.old));
-        if battle_end_state.current > 2 && battle_end_state.current != u8::MAX {
-            print_message(&format!("New battle end state: {}", battle_end_state.current));
-        }
-        (battle_end_state.old == 1 || battle_end_state.old == 3) && battle_flow_state.changed_to(&0)
-        // self.battle_end_state.pair.unwrap().changed_from_to(&1, &0)
-        // self.battle_end_state.pair.unwrap().check(|t| *t == 0)
-    }
-}
-
 impl std::fmt::Debug for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("State")
@@ -313,72 +234,10 @@ impl std::fmt::Debug for State {
     }
 }
 
-fn should_split(state: &GameState, settings: &Settings) -> bool {
-    timer::set_variable("battle_name", &state.battle_manager_encounter_name.pair.as_ref().unwrap().current);
-    if state.is_battle_finished() {
-        let battle_name = &state.battle_manager_encounter_name.pair.as_ref().unwrap().old;
-        print_message(&format!("Battle finished! Battle: {}", battle_name));
-        return
-            (battle_name == "LU_Act1_MaelleNoTutorialCivilian" && settings.maelle_tutorial) ||
-            (battle_name == "SM_FirstLancelierNoTuto*1" && settings.sm_first_lancelier) ||
-            (battle_name == "SM_FirstPortier_NoTuto*1" && settings.sm_first_portier) ||
-            (battle_name == "SM_Volester_TutoFlying*1" && settings.sm_first_volesters) ||
-            (battle_name == "SM_Eveque_ShieldTutorial*1" && settings.sm_eveque) ||
-            (battle_name == "GO_Curator_JumpTutorial*1" && settings.fw_curator) ||
-            (battle_name == "GO_Goblu" && settings.flw_goblu) ||
-            (battle_name == "Petank_Blue" && settings.as_petank) ||
-            (battle_name == "AS_PotatoBagTank*1_IntroFight" && settings.as_robust_sakapatate) ||
-            (battle_name == "AS_PotatoBagBoss" && settings.as_ultimate_sakapatate) ||
-            (battle_name == "QUEST_BertrandBigHands*1" && settings.gv_bertrand) ||
-            (battle_name == "QUEST_DominiqueGiantFeet*1" && settings.gv_dominique) ||
-            (battle_name == "QUEST_MatthieuTheColossus*1" && settings.gv_matthieu) ||
-            (battle_name == "GV_Sciel*1" && settings.gv_sciel) ||
-            (battle_name == "EN_Francois" && settings.en_francois) ||
-            (battle_name == "SC_LampMaster" && settings.swc_lampmaster) ||
-            (battle_name == "FB_Chalier_GradientCounterTutorial*1" && settings.fb_chalier) ||
-            (battle_name == "FB_DuallisteLR" && settings.fb_dualliste ) ||
-            (battle_name == "MS_Monoco" && settings.ms_monoco) ||
-            (battle_name == "MM_Stalact_GradientAttackTutorial1" && settings.ms_stalact) ||
-            (battle_name == "OL_VersoDisappears_Chevaliere2" && settings.ol_chevaliers) ||
-            (battle_name == "OL_MirrorRenoir_FirstFight" && settings.ol_renoir) ||
-            (battle_name == "MF_Axon_Visages" && settings.visages_mask_keeper) ||
-            (battle_name == "SI_Glissando*1" && settings.sirene_glissando) ||
-            (battle_name == "SI_Axon_Sirene" && settings.sirene_sirene) ||
-            (battle_name == "SI_Axon_Sirene" && settings.sirene_sirene) ||
-            (battle_name == "ML_PaintressIntro" && settings.monolith_feetress) ||
-            (battle_name == "MM_MirrorRenoir" && settings.monolith_renoir) ||
-            (battle_name == "L_Boss_Paintress_P1" && settings.monolith_paintress) ||
-            (battle_name == "L_Boss_Curator_P1" && settings.lumiere_renoir) ||
-            (battle_name == "FinalBossVerso" && settings.lumiere_verso) ||
-            (battle_name == "FinalBossMaelle" && settings.lumiere_maelle)
-    }
-
-    // if state.is_cutscene_over() {
-    //     let cutscene_name = &state.cs_cinematic_name.pair.as_ref().unwrap().current;
-    //     print_message(&format!("cutscene over: {}", &cutscene_name));
-
-    //     return
-    //         (cutscene_name == "LS_Title_Act1" && settings.act_1_start) ||
-    //         (cutscene_name == "LS_Title_Act2" && settings.act_2_start) ||
-    //         (cutscene_name == "LS_Title_Act3" && settings.act_3_start)
-    // }
-
-    if state.has_cutscene_started() {
-        let cutscene_name = &state.cs_cinematic_name.pair.as_ref().unwrap().current;
-        // print_message(&format!("cutscene started: {}", &cutscene_name));
-
-        return
-            (cutscene_name == "LS_Title_Act1" && settings.act_1_start) ||
-            (cutscene_name == "LS_Title_Act2" && settings.act_2_start) ||
-            (cutscene_name == "LS_Title_Act3" && settings.act_3_start)
-    }
-
-    false
-}
-
 async fn main() {
     // TODO: Set up some general state and settings.
     let mut settings = settings::Settings::register();
+    let mut splits = Splits::new();
 
     loop {
         let process_name = "SandFall-Win64-Shipping.exe";
@@ -404,7 +263,7 @@ async fn main() {
                             }
                         },
                         timer::TimerState::Running => {
-                            if should_split(&state.game_state, &settings) {
+                            if splits.should_split(&state.game_state, &settings) {
                                 timer::split();
                             }
                             if state.is_loading() {
@@ -414,6 +273,9 @@ async fn main() {
                             }
                         },
                         timer::TimerState::Paused => {},
+                        timer::TimerState::Ended => {
+                            splits.reset();
+                        }
                         _ => {}
                     }
                     // TODO: Do something on every tick.
