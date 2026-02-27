@@ -1,5 +1,5 @@
 [package]
-name = "coe33-asr-chatgpt"
+name = "coe33-asr-autosplitter"
 version = "0.1.0"
 edition = "2021"
 
