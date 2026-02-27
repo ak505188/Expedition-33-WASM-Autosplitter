@@ -5,6 +5,7 @@ use asr::game_engine::unreal::{FNameKey, Module, Version};
 use asr::watcher::Watcher;
 use asr::PointerSize::Bit64;
 use asr::settings::Gui;
+use std::collections::HashMap;
 
 use crate::settings::Settings;
 
@@ -35,7 +36,8 @@ struct State {
     module: Module,
     local_player: Address64,
     build_version: u32,
-    game_state: GameState
+    game_state: GameState,
+    splits_map: HashMap<String, bool>,
 }
 
 struct GameState {
