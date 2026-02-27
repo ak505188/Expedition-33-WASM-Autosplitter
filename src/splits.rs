@@ -68,7 +68,7 @@ impl Splits {
         }
     }
 
-    pub fn should_split(&mut self, state: &GameState, settings: &Settings) -> bool {
+    pub fn should_split(&mut self, state: &GameState) -> bool {
         timer::set_variable("battle_name", &state.battle_manager_encounter_name.pair.as_ref().unwrap().current);
         let settings_map = Map::load();
 

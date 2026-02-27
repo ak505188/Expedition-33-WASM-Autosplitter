@@ -259,23 +259,21 @@ async fn main() {
                                 state.game_state.time_played.pair.unwrap().current > 0.0 &&
                                 state.game_state.time_played.pair.unwrap().current < 10.0
                             {
-                                timer::start()
+                                timer::start();
+                                splits.reset();
                             }
                         },
                         timer::TimerState::Running => {
-                            if splits.should_split(&state.game_state, &settings) {
+                            if splits.should_split(&state.game_state) {
                                 timer::split();
                             }
-                            if state.is_loading() {
-                                timer::pause_game_time();
-                            } else {
-                                timer::resume_game_time();
+                            match state.is_loading() {
+                                true => timer::pause_game_time(),
+                                false => timer::resume_game_time(),
                             }
                         },
                         timer::TimerState::Paused => {},
-                        timer::TimerState::Ended => {
-                            splits.reset();
-                        }
+                        timer::TimerState::Ended => {}
                         _ => {}
                     }
                     // TODO: Do something on every tick.
