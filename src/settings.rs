@@ -106,19 +106,15 @@ pub struct Settings {
     pub monolith_feetress: bool,
     /// Renoir
     pub monolith_renoir: bool,
-    /// The Paintress Phase 1
-    pub monolith_paintress_p1: bool,
-    /// The Paintress Phase 2
-    pub monolith_paintress_p2: bool,
+    /// The Paintress
+    pub monolith_paintress: bool,
 
     /// Act 3
     _act_3: Title,
     /// Return To Lumière
     _lumiere: Title,
-    /// Renoir Phase 1
-    pub lumiere_renoir_p1: bool,
-    /// Renoir Phase 2
-    pub lumiere_renoir_p2: bool,
+    /// Renoir
+    pub lumiere_renoir: bool,
     /// Verso
     pub lumiere_verso: bool,
     /// Maelle

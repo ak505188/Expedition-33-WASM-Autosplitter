@@ -46,3 +46,18 @@ when you save your changes.
 The debugger is able to step through the code. You can set breakpoints in VSCode
 and it should stop there when the breakpoint is hit. Inspecting variables may
 not work all the time.
+
+## Game Info
+- BattleFlowState
+    * 0: Out of battle
+    * 1: Battle loading
+    * 2: In battle
+- BattleEndState
+    * 0: In Battle
+    * 1: Battle Won
+    * 2: Expedition Failed, switches back to 0 for 2nd party
+    * 3: Battle Over (Fake Paintress)
+- CSCinematicStatus
+    * 0: Not in cinematic
+    * 1: In cinematic
+    * 5: Cinematic paused
