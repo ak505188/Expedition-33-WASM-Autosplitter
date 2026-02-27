@@ -64,8 +64,6 @@ struct GameState {
 impl State {
     pub async fn init<'a>(process: &'a Process, process_name: &'a str) -> Self {
         let base_addr = process.get_module_address(process_name).unwrap();
-        // let module_size = process.get_module_size(process_name).unwrap();
-        // print_message("Found module size");
         print_message("Found base_addr");
         let module = Module::wait_attach(&process, Version::V5_4, base_addr).await;
         print_message("Attached to module.");
@@ -73,6 +71,9 @@ impl State {
         let build_version = 61711;
 
         let local_player: Address64 = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38]).expect("Local player error");
+
+        let mut cs_cinematic_name: Watcher<String> = Watcher::new();
+        cs_cinematic_name.update_infallible(String::new());
 
         State {
             module,
@@ -84,7 +85,7 @@ impl State {
                 battle_manager_encounter_name: Watcher::new(),
                 battle_debug_last_flow_state: Watcher::new(),
                 cs_cinematic_status: Watcher::new(),
-                cs_cinematic_name: Watcher::new(),
+                cs_cinematic_name,
                 cs_cinematic_paused: Watcher::new(),
                 cs_cinematic_serial_number: Watcher::new(),
                 cs_is_playing_cinematic: Watcher::new(),
@@ -148,9 +149,13 @@ impl State {
 
         let battle_flow_state: Option<u8> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x9b0]).ok();
         self.game_state.battle_flow_state.update(battle_flow_state);
+        if let Some(bfs) = battle_flow_state {
+            timer::set_variable("battle_flow_state", &bfs.to_string());
+        }
 
         let battle_end_state: u8 = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x920, 0x910]).unwrap_or(u8::MAX);
         self.game_state.battle_end_state.update_infallible(battle_end_state);
+        timer::set_variable("battle_end_state", &battle_end_state.to_string());
 
         let battle_manager_encounter_name = State::get_fname(process, &self.module, self.local_player, &[0x0, 0x30, 0x920, 0x190], String::from(""));
         self.game_state.battle_manager_encounter_name.update(Some(battle_manager_encounter_name));
@@ -174,11 +179,15 @@ impl State {
 
             // TODO: Handle the unwrap_or here properly, u32::MAX is a filler value that shouldn't
             // break logic.
-            let cs_cinematic_status: u32 = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x8a8, 0xa8, 0x288]).unwrap_or(u32::MAX);
-            self.game_state.cs_cinematic_status.update(Some(cs_cinematic_status));
+            let cs_cinematic_status: Option<u32> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x8a8, 0xa8, 0x288]).ok();
+            self.game_state.cs_cinematic_status.update(cs_cinematic_status);
+            if let Some(cs_cinematic_status) = cs_cinematic_status {
+                timer::set_variable("cs_cinematic_status", &cs_cinematic_status.to_string());
+            }
 
             let cs_cinematic_name: String = State::get_fname(process, &self.module, self.local_player, &[0x0, 0x30, 0x8a8, 0xa8, 0x290, 0x18], String::from(""));
-            self.game_state.cs_cinematic_name.update(Some(cs_cinematic_name));
+            self.game_state.cs_cinematic_name.update_infallible(cs_cinematic_name.clone());
+            timer::set_variable("cs_cinematic_name", cs_cinematic_name.as_str());
 
             let cs_cinematic_serial_number: Option<u32> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x8a8, 0xa8, 0x2a8]).ok();
             self.game_state.cs_cinematic_serial_number.update(cs_cinematic_serial_number);
@@ -258,8 +267,36 @@ impl GameState {
         self.world.pair.as_ref().unwrap().current == "Level_WorldMap_Main_V2" && self.minimap_active.pair.unwrap().current
     }
 
-    fn is_battle_won(&self) -> bool {
-        self.battle_end_state.pair.unwrap().check(|t| *t == 0)
+    fn is_in_battle(&self) -> bool {
+        self.battle_flow_state.pair.unwrap().current == 2
+    }
+
+    fn is_in_cutscene(&self) -> bool {
+        self.cs_is_playing_cinematic.pair.unwrap().current
+    }
+
+    fn has_cutscene_started(&self) -> bool {
+        self.cs_cinematic_name.pair.as_ref().unwrap().changed_from(&String::from(""))
+    }
+
+    fn is_cutscene_over(&self) -> bool {
+        self.cs_is_playing_cinematic.pair.unwrap().changed_to(&false)
+    }
+
+    fn is_battle_finished(&self) -> bool {
+        let battle_flow_state = match self.battle_flow_state.pair {
+            Some(v) => v,
+            None => return false
+        };
+        // print_message(&format!("bfs: {}, change_to_0: {}", battle_flow_state.current, battle_flow_state.changed_to(&0)));
+        let battle_end_state = self.battle_end_state.pair.unwrap();
+        // print_message(&format!("battle_end_state cur: {}, old: {}", battle_end_state.current, battle_end_state.old));
+        if battle_end_state.current > 2 && battle_end_state.current != u8::MAX {
+            print_message(&format!("New battle end state: {}", battle_end_state.current));
+        }
+        (battle_end_state.old == 1 || battle_end_state.old == 3) && battle_flow_state.changed_to(&0)
+        // self.battle_end_state.pair.unwrap().changed_from_to(&1, &0)
+        // self.battle_end_state.pair.unwrap().check(|t| *t == 0)
     }
 }
 
@@ -276,8 +313,9 @@ impl std::fmt::Debug for State {
 
 fn should_split(state: &GameState, settings: &Settings) -> bool {
     timer::set_variable("battle_name", &state.battle_manager_encounter_name.pair.as_ref().unwrap().current);
-    if state.is_battle_won() {
+    if state.is_battle_finished() {
         let battle_name = &state.battle_manager_encounter_name.pair.as_ref().unwrap().old;
+        print_message(&format!("Battle finished! Battle: {}", battle_name));
         return
             (battle_name == "LU_Act1_MaelleNoTutorialCivilian" && settings.maelle_tutorial) ||
             (battle_name == "SM_FirstLancelierNoTuto*1" && settings.sm_first_lancelier) ||
@@ -305,22 +343,39 @@ fn should_split(state: &GameState, settings: &Settings) -> bool {
             (battle_name == "SI_Glissando*1" && settings.sirene_glissando) ||
             (battle_name == "SI_Axon_Sirene" && settings.sirene_sirene) ||
             (battle_name == "SI_Axon_Sirene" && settings.sirene_sirene) ||
-            (battle_name == "FakePaintress" && settings.monolith_feetress) ||
+            (battle_name == "ML_PaintressIntro" && settings.monolith_feetress) ||
             (battle_name == "MM_MirrorRenoir" && settings.monolith_renoir) ||
-            (battle_name == "L_Boss_Paintress_P1_Phase1" && settings.monolith_paintress_p1) ||
-            (battle_name == "L_Boss_Paintress_P1" && settings.monolith_paintress_p2) ||
-            (battle_name == "L_Boss_Curator_P1_Phase1" && settings.lumiere_renoir_p1) ||
-            (battle_name == "L_Boss_Curator_P1" && settings.lumiere_renoir_p2) ||
+            (battle_name == "L_Boss_Paintress_P1" && settings.monolith_paintress) ||
+            (battle_name == "L_Boss_Curator_P1" && settings.lumiere_renoir) ||
             (battle_name == "FinalBossVerso" && settings.lumiere_verso) ||
             (battle_name == "FinalBossMaelle" && settings.lumiere_maelle)
     }
+
+    // if state.is_cutscene_over() {
+    //     let cutscene_name = &state.cs_cinematic_name.pair.as_ref().unwrap().current;
+    //     print_message(&format!("cutscene over: {}", &cutscene_name));
+
+    //     return
+    //         (cutscene_name == "LS_Title_Act1" && settings.act_1_start) ||
+    //         (cutscene_name == "LS_Title_Act2" && settings.act_2_start) ||
+    //         (cutscene_name == "LS_Title_Act3" && settings.act_3_start)
+    // }
+
+    if state.has_cutscene_started() {
+        let cutscene_name = &state.cs_cinematic_name.pair.as_ref().unwrap().current;
+        // print_message(&format!("cutscene started: {}", &cutscene_name));
+
+        return
+            (cutscene_name == "LS_Title_Act1" && settings.act_1_start) ||
+            (cutscene_name == "LS_Title_Act2" && settings.act_2_start) ||
+            (cutscene_name == "LS_Title_Act3" && settings.act_3_start)
+    }
+
     false
 }
 
 async fn main() {
     // TODO: Set up some general state and settings.
-
-    asr::print_message("Hello, World!");
     let mut settings = settings::Settings::register();
 
     loop {
