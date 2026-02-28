@@ -1,3 +1,4 @@
+use asr::future::retry;
 use asr::string::{ArrayCString, ArrayWString};
 use asr::{timer};
 use asr::{Address, Address64, Process, future::next_tick, print_message};
@@ -8,7 +9,6 @@ use asr::settings::Gui;
 
 
 use crate::gamestate::GameState;
-use crate::settings::Settings;
 use crate::splits::Splits;
 
 mod gamestate;
@@ -18,11 +18,11 @@ mod splits;
 asr::async_main!(stable);
 // asr::panic_handler!();
 
-// static PROCESS_NAMES: [&str; 3] = [
-//     "Sandfall-Win64-Shipping.exe",
-//     "SandFallGOG-Win64-Shipping.exe",
-//     "Sandfall-WinGDK-Shipping.exe"
-// ];
+static PROCESS_NAMES: [&str; 3] = [
+    "SandFall-Win64-Shipping.exe",
+    "SandFallGOG-Win64-Shipping.exe",
+    "Sandfall-WinGDK-Shipping.exe",
+];
 
 // const HEAVY_CINEMATICS: [&str;9] = [
 //     "MCS_GobluOutro",
@@ -44,13 +44,11 @@ struct State {
 }
 
 impl State {
-    pub async fn init<'a>(process: &'a Process, process_name: &'a str) -> Self {
-        let base_addr = process.get_module_address(process_name).unwrap();
-        print_message("Found base_addr");
+    pub async fn init<'a>(process: &'a Process, base_addr: Address) -> Self {
         let module = Module::wait_attach(&process, Version::V5_4, base_addr).await;
         print_message("Attached to module.");
-        // let build_version = State::get_build_version(process, &module);
-        let build_version = 61711;
+        let build_version = State::get_build_version(process, &module);
+        // let build_version = 61711;
 
         let local_player: Address64 = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38]).expect("Local player error");
 
@@ -140,6 +138,7 @@ impl State {
         timer::set_variable("battle_end_state", &battle_end_state.to_string());
 
         let battle_manager_encounter_name = State::get_fname(process, &self.module, self.local_player, &[0x0, 0x30, 0x920, 0x190], String::from(""));
+        // timer::set_variable("battle_name", &battle_manager_encounter_name);
         self.game_state.battle_manager_encounter_name.update(Some(battle_manager_encounter_name));
 
         let battle_debug_last_flow_state: Option<Address64> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x920]).ok();
@@ -163,13 +162,13 @@ impl State {
             // break logic.
             let cs_cinematic_status: Option<u32> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x8a8, 0xa8, 0x288]).ok();
             self.game_state.cs_cinematic_status.update(cs_cinematic_status);
-            if let Some(cs_cinematic_status) = cs_cinematic_status {
-                timer::set_variable("cs_cinematic_status", &cs_cinematic_status.to_string());
-            }
+            // if let Some(cs_cinematic_status) = cs_cinematic_status {
+            //     timer::set_variable("cs_cinematic_status", &cs_cinematic_status.to_string());
+            // }
 
             let cs_cinematic_name: String = State::get_fname(process, &self.module, self.local_player, &[0x0, 0x30, 0x8a8, 0xa8, 0x290, 0x18], String::from(""));
+            // timer::set_variable("cs_cinematic_name", cs_cinematic_name.as_str());
             self.game_state.cs_cinematic_name.update_infallible(cs_cinematic_name.clone());
-            timer::set_variable("cs_cinematic_name", cs_cinematic_name.as_str());
 
             let cs_cinematic_serial_number: Option<u32> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x8a8, 0xa8, 0x2a8]).ok();
             self.game_state.cs_cinematic_serial_number.update(cs_cinematic_serial_number);
@@ -235,17 +234,23 @@ impl std::fmt::Debug for State {
 }
 
 async fn main() {
-    // TODO: Set up some general state and settings.
     let mut settings = settings::Settings::register();
     let mut splits = Splits::new();
 
     loop {
-        let process_name = "SandFall-Win64-Shipping.exe";
-        let process = Process::wait_attach(process_name).await;
+        // let process = Process::wait_attach(process_name).await;
+        print_message(&format!("{:?}", PROCESS_NAMES));
+        let process = retry(|| {
+            PROCESS_NAMES.into_iter().find_map(Process::attach)
+        }).await;
+        let base_addr = retry (|| {
+            PROCESS_NAMES.into_iter().find_map(|name| { process.get_module_address(name).ok() })
+        }).await;
+        print_message("Found base_addr");
         process
             .until_closes(async {
                 // TODO: Load some initial information from the process.
-                let mut state = State::init(&process, process_name).await;
+                let mut state = State::init(&process, base_addr).await;
                 print_message(&format!("{:?}", state));
 
                 loop {
@@ -276,7 +281,6 @@ async fn main() {
                         timer::TimerState::Ended => {}
                         _ => {}
                     }
-                    // TODO: Do something on every tick.
                     next_tick().await;
                 }
             })

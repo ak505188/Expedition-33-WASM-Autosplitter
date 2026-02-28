@@ -1,5 +1,5 @@
 use asr::watcher::Watcher;
-use asr::print_message;
+// use asr::print_message;
 
 pub struct GameState {
     pub battle_end_state: Watcher<u8>,
@@ -50,6 +50,7 @@ impl GameState {
         self.world.pair.as_ref().unwrap().current == "Level_WorldMap_Main_V2" && self.minimap_active.pair.unwrap().current
     }
 
+    /*
     pub fn is_in_battle(&self) -> bool {
         self.battle_flow_state.pair.unwrap().current == 2
     }
@@ -58,12 +59,13 @@ impl GameState {
         self.cs_is_playing_cinematic.pair.unwrap().current
     }
 
-    pub fn has_cutscene_started(&self) -> bool {
-        self.cs_cinematic_name.pair.as_ref().unwrap().changed_from(&String::from(""))
-    }
-
     pub fn is_cutscene_over(&self) -> bool {
         self.cs_is_playing_cinematic.pair.unwrap().changed_to(&false)
+    }
+    */
+
+    pub fn has_cutscene_started(&self) -> bool {
+        self.cs_cinematic_name.pair.as_ref().unwrap().changed_from(&String::from(""))
     }
 
     pub fn is_battle_finished(&self) -> bool {
@@ -74,11 +76,6 @@ impl GameState {
         // print_message(&format!("bfs: {}, change_to_0: {}", battle_flow_state.current, battle_flow_state.changed_to(&0)));
         let battle_end_state = self.battle_end_state.pair.unwrap();
         // print_message(&format!("battle_end_state cur: {}, old: {}", battle_end_state.current, battle_end_state.old));
-        if battle_end_state.current > 2 && battle_end_state.current != u8::MAX {
-            print_message(&format!("New battle end state: {}", battle_end_state.current));
-        }
         (battle_end_state.old == 1 || battle_end_state.old == 3) && battle_flow_state.changed_to(&0)
-        // self.battle_end_state.pair.unwrap().changed_from_to(&1, &0)
-        // self.battle_end_state.pair.unwrap().check(|t| *t == 0)
     }
 }

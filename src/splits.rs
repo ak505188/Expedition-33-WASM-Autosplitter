@@ -2,10 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use asr::settings::{Map};
 use asr::{timer};
-use asr::print_message;
 
 use crate::gamestate::GameState;
-use crate::settings::Settings;
 
 pub struct Splits {
     done_splits: HashSet<String>,
@@ -132,12 +130,3 @@ impl Splits {
         self
     }
 }
-
-// Control Flow
-// should_split -> bool
-//   if battle_finished
-//     check map of battle_splits for battle_name
-//     if match, get value setting key
-//     check settings for key, if true add to split_done set and split
-//   if cutscene_finished
-//     ...
