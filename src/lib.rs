@@ -47,7 +47,7 @@ impl State {
     pub async fn init<'a>(process: &'a Process, base_addr: Address) -> Self {
         let module = Module::wait_attach(&process, Version::V5_4, base_addr).await;
         print_message("Attached to module.");
-        let build_version = State::get_build_version(process, &module);
+        let build_version = State::get_build_version(process, &module).await;
         // let build_version = 61711;
 
         let local_player: Address64 = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38]).expect("Local player error");
@@ -91,7 +91,7 @@ impl State {
         self.game_state.is_minimap_open()
     }
 
-    fn get_build_version(process: &Process, module: &Module) -> u32 {
+    async fn get_build_version(process: &Process, module: &Module) -> u32 {
         loop {
             let build_version: ArrayWString<8> = match process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38, 0x0, 0x30, 0x878, 0x440, 0x1a0, 0x28, 0x0]) {
                 Ok(v) => v,
@@ -99,7 +99,10 @@ impl State {
             };
             let build_version = String::from_utf16(build_version.as_slice()).expect("Failed to convert build version to string");
             let build_version: u32 = build_version.parse::<u32>().unwrap_or(999999);
-            if build_version == 999999 { continue }
+            if build_version == 999999 {
+                next_tick().await;
+                continue;
+            }
             return build_version
         }
     }
@@ -110,9 +113,11 @@ impl State {
         // timer::set_variable("state", is_pause_menu_visible.to_string().as_str());
 
         let world: String = State::get_fname(process, &self.module, self.module.g_world(), &[0x0, 0x18], String::from(""));
+        timer::set_variable("world", &world);
         self.game_state.world.update(Some(world));
 
         let time_played: f64 = process.read_pointer_path(self.module.g_engine(), Bit64, &[0x0, 0x10a8, 0x1f0]).unwrap_or(0.0);
+        timer::set_variable("time_played", &time_played.to_string());
         self.game_state.time_played.update_infallible(time_played);
 
         let is_changing_area: bool = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0xde8]).unwrap_or(false);
@@ -239,7 +244,6 @@ async fn main() {
 
     loop {
         // let process = Process::wait_attach(process_name).await;
-        print_message(&format!("{:?}", PROCESS_NAMES));
         let process = retry(|| {
             PROCESS_NAMES.into_iter().find_map(Process::attach)
         }).await;
@@ -264,19 +268,23 @@ async fn main() {
                                 state.game_state.world.pair.as_ref().unwrap().current == "Level_Lumiere_Main_V2") &&
                                 state.game_state.time_played.pair.unwrap().old == 0.0 &&
                                 state.game_state.time_played.pair.unwrap().current > 0.0 &&
-                                state.game_state.time_played.pair.unwrap().current < 10.0
+                                state.game_state.time_played.pair.unwrap().current < 5.0
                             {
                                 timer::start();
                                 splits.reset();
                             }
                         },
                         timer::TimerState::Running => {
-                            if settings.split && splits.should_split(&state.game_state) {
-                                timer::split();
-                            }
                             match state.is_loading() {
                                 true => timer::pause_game_time(),
                                 false => timer::resume_game_time(),
+                            }
+                            if settings.split && splits.should_split(&state.game_state) {
+                                timer::split();
+                            } else if
+                                settings.reset &&
+                                state.game_state.world.pair.as_ref().unwrap().changed_to(&String::from("Level_MainMenu")) {
+                                timer::reset();
                             }
                         },
                         timer::TimerState::Paused => {},
