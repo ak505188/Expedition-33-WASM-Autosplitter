@@ -47,6 +47,12 @@ The debugger is able to step through the code. You can set breakpoints in VSCode
 and it should stop there when the breakpoint is hit. Inspecting variables may
 not work all the time.
 
+## Feature Checklist
+- [ ] New Game+ Support
+- [ ] Reset support
+- [ ] Load remove long loads post cutscenes (broken in ASL)
+- [ ] Properly wait for Build Version, currently soft locks
+
 ## Game Info
 - BattleFlowState
     * 0: Out of battle
