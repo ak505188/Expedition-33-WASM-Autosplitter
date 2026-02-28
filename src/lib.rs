@@ -258,7 +258,9 @@ async fn main() {
                     state.update(&process);
                     match timer::state() {
                         timer::TimerState::NotRunning => {
-                            if (state.game_state.world.pair.as_ref().unwrap().current == "Level_MainMenu" ||
+                            if
+                                settings.start &&
+                                (state.game_state.world.pair.as_ref().unwrap().current == "Level_MainMenu" ||
                                 state.game_state.world.pair.as_ref().unwrap().current == "Level_Lumiere_Main_V2") &&
                                 state.game_state.time_played.pair.unwrap().old == 0.0 &&
                                 state.game_state.time_played.pair.unwrap().current > 0.0 &&
@@ -269,7 +271,7 @@ async fn main() {
                             }
                         },
                         timer::TimerState::Running => {
-                            if splits.should_split(&state.game_state) {
+                            if settings.split && splits.should_split(&state.game_state) {
                                 timer::split();
                             }
                             match state.is_loading() {

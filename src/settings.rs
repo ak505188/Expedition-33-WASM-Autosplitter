@@ -4,12 +4,16 @@ use asr::settings::gui::Title;
 #[derive(Gui)]
 pub struct Settings {
     /// Auto Reset when returning to Main Menu
+    #[default = true]
+    pub start: bool,
+    #[default = true]
+    pub split: bool,
     #[default = false]
-    reset: bool,
+    pub reset: bool,
 
     /// Turn On NG+ Run
     #[default = false]
-    ng_plus: bool,
+    pub ng_plus: bool,
 
     /// Start of Act Splits
     _start_of_act_splits: Title,
@@ -94,7 +98,7 @@ pub struct Settings {
     ms_stalact: bool,
     /// Old Lumiere
     _old_lumiere: Title,
-    /// Ceramic & Steel Chevalière
+    /// Ceramic &amp; Steel Chevalière
     ol_chevaliers: bool,
     /// Renoir
     ol_renoir: bool,
