@@ -94,7 +94,10 @@ impl State {
         loop {
             let build_version: ArrayWString<8> = match process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38, 0x0, 0x30, 0x878, 0x440, 0x1a0, 0x28, 0x0]) {
                 Ok(v) => v,
-                Err(_) => continue
+                Err(_) => {
+                    next_tick().await;
+                    continue
+                }
             };
             let build_version = String::from_utf16(build_version.as_slice()).expect("Failed to convert build version to string");
             let build_version: u32 = build_version.parse::<u32>().unwrap_or(999999);
