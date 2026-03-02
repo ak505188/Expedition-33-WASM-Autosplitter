@@ -11,12 +11,11 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 [[package]]
 name = "asr"
 version = "0.1.0"
-source = "git+https://github.com/LiveSplit/asr#85fdba985915858c1849340e9b1039869fca0b34"
+source = "git+https://github.com/LiveSplit/asr#64d2779d7339fa5d7058524ca33d5c94a068fe01"
 dependencies = [
  "arrayvec",
  "asr-derive",
  "bytemuck",
- "memchr",
  "time",
  "wasi",
 ]
@@ -24,7 +23,7 @@ dependencies = [
 [[package]]
 name = "asr-derive"
 version = "0.1.0"
-source = "git+https://github.com/LiveSplit/asr#85fdba985915858c1849340e9b1039869fca0b34"
+source = "git+https://github.com/LiveSplit/asr#64d2779d7339fa5d7058524ca33d5c94a068fe01"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -74,12 +73,6 @@ name = "heck"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
-
-[[package]]
-name = "memchr"
-version = "2.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 
 [[package]]
 name = "num-conv"
