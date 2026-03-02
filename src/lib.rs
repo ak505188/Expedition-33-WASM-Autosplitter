@@ -70,7 +70,6 @@ impl State {
                 cs_cinematic_serial_number: Watcher::new(),
                 cs_is_playing_cinematic: Watcher::new(),
                 cs_event_before_post_cinematic_transition_started: Watcher::new(),
-                // finished_game_count: 0,
                 is_changing_area: Watcher::new(),
                 is_changing_map: Watcher::new(),
                 is_pause_menu_visible: Watcher::new(),
@@ -172,7 +171,7 @@ impl State {
             // }
 
             let cs_cinematic_name: String = State::get_fname(process, &self.module, self.local_player, &[0x0, 0x30, 0x8a8, 0xa8, 0x290, 0x18], String::from(""));
-            // timer::set_variable("cs_cinematic_name", cs_cinematic_name.as_str());
+            timer::set_variable("cs_cinematic_name", cs_cinematic_name.as_str());
             self.game_state.cs_cinematic_name.update_infallible(cs_cinematic_name.clone());
 
             let cs_cinematic_serial_number: Option<u32> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x8a8, 0xa8, 0x2a8]).ok();
@@ -262,14 +261,7 @@ async fn main() {
                     state.update(&process);
                     match timer::state() {
                         timer::TimerState::NotRunning => {
-                            if
-                                settings.start &&
-                                (state.game_state.world.pair.as_ref().unwrap().current == "Level_MainMenu" ||
-                                state.game_state.world.pair.as_ref().unwrap().current == "Level_Lumiere_Main_V2") &&
-                                state.game_state.time_played.pair.unwrap().old == 0.0 &&
-                                state.game_state.time_played.pair.unwrap().current > 0.0 &&
-                                state.game_state.time_played.pair.unwrap().current < 5.0
-                            {
+                            if settings.start && state.game_state.is_starting_run(settings.ng_plus) {
                                 timer::start();
                                 splits.reset();
                             }

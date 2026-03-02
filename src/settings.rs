@@ -3,7 +3,6 @@ use asr::settings::gui::Title;
 
 #[derive(Gui)]
 pub struct Settings {
-    /// Auto Reset when returning to Main Menu
     #[default = true]
     pub start: bool,
     #[default = true]
@@ -11,7 +10,7 @@ pub struct Settings {
     #[default = false]
     pub reset: bool,
 
-    /// Turn On NG+ Run
+    /// Start timer when starting NG+
     #[default = false]
     pub ng_plus: bool,
 

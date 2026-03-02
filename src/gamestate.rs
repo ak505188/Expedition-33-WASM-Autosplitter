@@ -1,4 +1,4 @@
-use asr::watcher::Watcher;
+use asr::{timer, watcher::Watcher};
 // use asr::print_message;
 
 pub struct GameState {
@@ -18,7 +18,6 @@ pub struct GameState {
     // is_save_point_menu_visible: bool,
     pub lsw_has_appeared: Watcher<bool>,
     pub time_played: Watcher<f64>,
-    // finished_game_count: i32,
     pub minimap_active: Watcher<bool>,
     pub pcm_in_game: Watcher<f32>,
     pub world: Watcher<String>,
@@ -48,6 +47,18 @@ impl GameState {
 
     pub fn is_minimap_open(&self) -> bool {
         self.world.pair.as_ref().unwrap().current == "Level_WorldMap_Main_V2" && self.minimap_active.pair.unwrap().current
+    }
+
+    pub fn is_starting_run(&self, is_ng_plus: bool) -> bool {
+        let time_played = self.time_played.pair.unwrap();
+        if is_ng_plus && time_played.current > 10.0 && self.cs_is_playing_cinematic.pair.unwrap().current {
+            let current_cinematic = self.cs_cinematic_name.pair.as_ref().unwrap();
+            return current_cinematic.changed() && current_cinematic.current.contains("MCS_MyFlower")
+        }
+
+        time_played.old == 0.0 &&
+        time_played.current > 0.0 &&
+        time_played.current < 5.0
     }
 
     /*

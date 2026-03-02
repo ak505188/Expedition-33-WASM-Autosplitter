@@ -48,11 +48,17 @@ and it should stop there when the breakpoint is hit. Inspecting variables may
 not work all the time.
 
 ## Feature Checklist
-- [ ] New Game+ Support
+- [x] New Game+ Support
 - [x] Reset support
 - [x] Properly wait for Build Version, currently soft locks
 - [ ] Mods folder check
 - [ ] Load remove long loads post cutscenes (broken in ASL)
+
+## New Split Points
+- [ ] Bruleram Battle
+- [ ] Monolith Train
+- [ ] Entering Lumiere?
+- [ ] Creation Flee
 
 ## Game Info
 - BattleFlowState
