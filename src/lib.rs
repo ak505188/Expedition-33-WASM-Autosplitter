@@ -91,22 +91,17 @@ impl State {
     }
 
     async fn get_build_version(process: &Process, module: &Module) -> u32 {
-        loop {
-            let build_version: ArrayWString<8> = match process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38, 0x0, 0x30, 0x878, 0x440, 0x1a0, 0x28, 0x0]) {
-                Ok(v) => v,
-                Err(_) => {
-                    next_tick().await;
-                    continue
-                }
-            };
-            let build_version = String::from_utf16(build_version.as_slice()).expect("Failed to convert build version to string");
-            let build_version: u32 = build_version.parse::<u32>().unwrap_or(999999);
-            if build_version == 999999 {
-                next_tick().await;
-                continue;
-            }
-            return build_version
-        }
+        print_message("Trying to get build version");
+
+        let build_version: u32 = retry(|| {
+            let build_version: ArrayWString<8> = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38, 0x0, 0x30, 0x878, 0x440, 0x1a0, 0x28, 0x0]).ok()?;
+            let build_version = String::from_utf16(build_version.as_slice()).ok()?;
+            build_version.parse::<u32>().ok()
+        }).await;
+
+        print_message(&format!("Got build version {build_version}"));
+
+        build_version
     }
 
     pub fn update(&mut self, process: &Process) -> &Self {
@@ -245,14 +240,15 @@ async fn main() {
     let mut splits = Splits::new();
 
     loop {
-        // let process = Process::wait_attach(process_name).await;
-        let process = retry(|| {
-            PROCESS_NAMES.into_iter().find_map(Process::attach)
+        let (process, process_name): (Process, &str) = retry(|| {
+            PROCESS_NAMES.into_iter().find_map(|name| {
+                Process::attach(name).and_then(|process| Some((process, name)))
+            })
         }).await;
-        let base_addr = retry (|| {
-            PROCESS_NAMES.into_iter().find_map(|name| { process.get_module_address(name).ok() })
-        }).await;
+
+        let base_addr = retry(|| process.get_module_address(process_name)).await;
         print_message("Found base_addr");
+
         process
             .until_closes(async {
                 // TODO: Load some initial information from the process.
