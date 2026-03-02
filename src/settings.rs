@@ -48,8 +48,6 @@ pub struct Settings {
     fw_goblu: bool,
     /// Ancient Sanctuary
     _ancient_sanctuary: Title,
-    /// Petank
-    as_petank: bool,
     /// Robust Sakapatate
     as_robust_sakapatate: bool,
     /// Ultimate Sakapatate
@@ -68,10 +66,6 @@ pub struct Settings {
     _esquies_nest: Title,
     /// François
     en_francois: bool,
-    /// The Continent
-    _wm_en_swc: Title,
-    /// Cruler / Lancelier / Demineur
-    wm_cruler_lancelier_demineur: bool,
     /// Stone Wave Cliffs
     _stone_wave_cliffs: Title,
     /// Lampmaster
@@ -85,10 +79,6 @@ pub struct Settings {
     fb_chalier: bool,
     /// Dualliste
     fb_dualliste: bool,
-    /// The Continent
-    _wm_fb_ms: Title,
-    /// Troubadour / Gault / Demineur
-    wm_troubadour_gault_demineur: bool,
     /// Monoco Station
     _monoco_station: Title,
     /// Monoco
@@ -115,6 +105,8 @@ pub struct Settings {
     _monolith: Title,
     /// Fake Paintress
     monolith_feetress: bool,
+    /// Train Cutscene
+    monolith_train_cs: bool,
     /// Renoir
     monolith_renoir: bool,
     /// The Paintress
@@ -124,6 +116,8 @@ pub struct Settings {
     _act_3: Title,
     /// Return To Lumière
     _lumiere: Title,
+    /// Enter Lumiere
+    lumiere_start_cs: bool,
     /// Renoir
     lumiere_renoir: bool,
     /// Verso
@@ -135,14 +129,49 @@ pub struct Settings {
     _optional_encounters: Title,
     /// Francois (Esquie Relationship LV6)
     quest_francoisduel: bool,
-    /// Verso's Drafts
-    _versos_drafts: Title,
-    /// Balloon Gestral (Trigger Happy)
-    vd_balloon_gestral: bool,
-    /// Monsieur Frappe
-    vd_frappe: bool,
-    /// Osquio
-    vd_osquio: bool,
+
+    /// The Continent
+    _continent_optional: Title,
+    /// Cruler / Lancelier / Demineur
+    wm_cruler_lancelier_demineur: bool,
+    /// Troubadour / Gault / Demineur
+    wm_troubadour_gault_demineur: bool,
+    /// Sprong
+    wm_sprong: bool,
+    /// Serpenphare
+    wm_serpenphare: bool,
+
+
+    /// Spring Meadows
+    _spring_meadows_optional: Title,
+    /// Lancelier x2
+    sm_lancelier_x2: bool,
+    /// Abbest / Volester x2
+    sm_abbest_volester_x2: bool,
+
+    /// Flying Waters
+    _flying_waters_optional: Title,
+    /// Demineur x3
+    fw_demineur_x3: bool,
+    /// Noco
+    fw_noco: bool,
+    /// Bruler / Luster / Demineur
+    fw_bruler_luster_demineur: bool,
+
+    /// Ancient Sanctuary
+    _ancient_sanctuary_optional: Title,
+    /// Petank
+    as_petank: bool,
+
+    /// Old Lumiere
+    _ol_optionals: Title,
+    /// Chromatic Danseuse
+    ol_chromatic_danseuse: bool,
+
+    /// Lumiere
+    _lumiere_optional: Title,
+    /// Abberation
+    lumiere_abberation: bool,
 
     /// Yellow Harvest
     _yellow_harvest: Title,
@@ -151,17 +180,14 @@ pub struct Settings {
     /// Merchant
     yh_merchant: bool,
 
-    /// The Continent
-    _the_continent: Title,
-    /// Sprong
-    wm_sprong: bool,
-    /// Serpenphare
-    wm_serpenphare: bool,
-
-    /// Old Lumiere
-    _ol_optionals: Title,
-    /// Chromatic Danseuse
-    ol_chromatic_danseuse: bool,
+    /// Verso's Drafts
+    _versos_drafts: Title,
+    /// Balloon Gestral (Trigger Happy)
+    vd_balloon_gestral: bool,
+    /// Monsieur Frappe
+    vd_frappe: bool,
+    /// Osquio
+    vd_osquio: bool,
 
     /// Flying Manor
     _flying_manor: Title,

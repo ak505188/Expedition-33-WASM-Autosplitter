@@ -55,10 +55,10 @@ not work all the time.
 - [ ] Load remove long loads post cutscenes (broken in ASL)
 
 ## New Split Points
-- [ ] Bruleram Battle
-- [ ] Monolith Train
-- [ ] Entering Lumiere?
-- [ ] Creation Flee
+- [x] Bruleram Battle
+- [x] Monolith Train
+- [x] Entering Lumiere?
+- [ ] Creation Flee (Would need to implement logic to check for flee)
 
 ## Game Info
 - BattleFlowState

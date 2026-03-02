@@ -1,4 +1,4 @@
-use asr::{timer, watcher::Watcher};
+use asr::watcher::Watcher;
 // use asr::print_message;
 
 pub struct GameState {
