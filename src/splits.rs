@@ -34,7 +34,7 @@ impl Splits {
             ("FB_DuallisteLR", "fb_dualliste" ),
             ("MS_Monoco", "ms_monoco"),
             ("MM_Stalact_GradientAttackTutorial*1", "ms_stalact"),
-            ("OL_VersoDisappears_Chevaliere2", "ol_chevaliers"),
+            ("OL_VersoDisappears_Chevaliere*2", "ol_chevaliers"),
             ("OL_MirrorRenoir_FirstFight", "ol_renoir"),
             ("MF_Axon_Visages", "visages_mask_keeper"),
             ("SI_Glissando*1", "sirene_glissando"),

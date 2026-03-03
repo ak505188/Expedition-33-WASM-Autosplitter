@@ -1,6 +1,6 @@
 use asr::future::retry;
 use asr::string::{ArrayCString, ArrayWString};
-use asr::{timer};
+use asr::{set_tick_rate, timer};
 use asr::{Address, Address64, Process, future::next_tick, print_message};
 use asr::game_engine::unreal::{FNameKey, Module, Version};
 use asr::watcher::Watcher;
@@ -255,14 +255,16 @@ async fn main() {
                 let mut state = State::init(&process, base_addr).await;
                 print_message(&format!("{:?}", state));
 
+                set_tick_rate(250.0);
+
                 loop {
                     settings.update();
                     state.update(&process);
                     match timer::state() {
                         timer::TimerState::NotRunning => {
                             if settings.start && state.game_state.is_starting_run(settings.ng_plus) {
-                                timer::start();
                                 splits.reset();
+                                timer::start();
                             }
                         },
                         timer::TimerState::Running => {
@@ -275,6 +277,7 @@ async fn main() {
                             } else if
                                 settings.reset &&
                                 state.game_state.world.pair.as_ref().unwrap().changed_to(&String::from("Level_MainMenu")) {
+                                splits.reset();
                                 timer::reset();
                             }
                         },
