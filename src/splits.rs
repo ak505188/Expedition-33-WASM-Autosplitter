@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use asr::settings::{Map};
-use asr::{timer};
+use asr::{settings::Map};
 
 use crate::gamestate::GameState;
 
@@ -98,7 +97,6 @@ impl Splits {
     }
 
     pub fn should_split(&mut self, state: &GameState) -> bool {
-        timer::set_variable("battle_name", &state.battle_manager_encounter_name.pair.as_ref().unwrap().current);
         let settings_map = Map::load();
 
         if state.is_battle_finished() {

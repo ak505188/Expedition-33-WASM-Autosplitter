@@ -34,11 +34,12 @@ impl GameState {
     }
 
     pub fn is_battle_loading(&self) -> bool {
+        if !self.is_in_battle() { return false }
         let battle_debug_last_flow_state = &self.battle_debug_last_flow_state.pair.as_ref().unwrap().current;
-        self.battle_flow_state.pair.unwrap().current == 2 && (
+
         battle_debug_last_flow_state == "InitBattle" ||
         battle_debug_last_flow_state == "LoadDependencies" ||
-        battle_debug_last_flow_state == "Dependencies loaded")
+        battle_debug_last_flow_state == "Dependencies loaded"
     }
 
     pub fn is_cutscene_loading(&self) -> bool {
@@ -61,11 +62,20 @@ impl GameState {
         time_played.current < 5.0
     }
 
-    /*
+    pub fn battle_lost(&self) -> bool {
+        if let Some(battle_end_state) = self.battle_end_state.pair {
+            return
+                self.battle_flow_state.pair.unwrap().changed_to(&0) &&
+                battle_end_state.old == 2
+        }
+        false
+    }
+
     pub fn is_in_battle(&self) -> bool {
         self.battle_flow_state.pair.unwrap().current == 2
     }
 
+    /*
     pub fn is_in_cutscene(&self) -> bool {
         self.cs_is_playing_cinematic.pair.unwrap().current
     }
@@ -80,13 +90,8 @@ impl GameState {
     }
 
     pub fn is_battle_finished(&self) -> bool {
-        let battle_flow_state = match self.battle_flow_state.pair {
-            Some(v) => v,
-            None => return false
-        };
-        // print_message(&format!("bfs: {}, change_to_0: {}", battle_flow_state.current, battle_flow_state.changed_to(&0)));
-        let battle_end_state = self.battle_end_state.pair.unwrap();
-        // print_message(&format!("battle_end_state cur: {}, old: {}", battle_end_state.current, battle_end_state.old));
-        (battle_end_state.old == 1 || battle_end_state.old == 3) && battle_flow_state.changed_to(&0)
+        let battle_flow_state = self.battle_flow_state.pair.unwrap();
+        battle_flow_state.changed_from_to(&2, &0) && !self.battle_lost()
+        // (battle_end_state.old == 1 || battle_end_state.old == 3) && battle_flow_state.changed_to(&0)
     }
 }

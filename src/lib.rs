@@ -48,7 +48,6 @@ impl State {
         let module = Module::wait_attach(&process, Version::V5_4, base_addr).await;
         print_message("Attached to module.");
         let build_version = State::get_build_version(process, &module).await;
-        // let build_version = 61711;
 
         let local_player: Address64 = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38]).expect("Local player error");
 
@@ -129,28 +128,27 @@ impl State {
         let pcm_in_game: f32 = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x348, 0x1390]).unwrap_or(0.0);
         self.game_state.pcm_in_game.update_infallible(pcm_in_game);
 
-        let battle_flow_state: Option<u8> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x9b0]).ok();
-        self.game_state.battle_flow_state.update(battle_flow_state);
-        if let Some(bfs) = battle_flow_state {
-            timer::set_variable("battle_flow_state", &bfs.to_string());
-        }
+        let battle_flow_state: u8 = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x9b0]).unwrap_or(u8::MAX);
+        timer::set_variable("battle_flow_state", &battle_flow_state.to_string());
+        self.game_state.battle_flow_state.update_infallible(battle_flow_state);
+        if battle_flow_state > 0 && battle_flow_state < 3 {
+            let battle_end_state: u8 = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x920, 0x910]).unwrap_or(u8::MAX);
+            self.game_state.battle_end_state.update_infallible(battle_end_state);
+            timer::set_variable("battle_end_state", &battle_end_state.to_string());
 
-        let battle_end_state: u8 = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x920, 0x910]).unwrap_or(u8::MAX);
-        self.game_state.battle_end_state.update_infallible(battle_end_state);
-        timer::set_variable("battle_end_state", &battle_end_state.to_string());
+            let battle_manager_encounter_name = State::get_fname(process, &self.module, self.local_player, &[0x0, 0x30, 0x920, 0x190], String::from(""));
+            // timer::set_variable("battle_name", &battle_manager_encounter_name);
+            self.game_state.battle_manager_encounter_name.update(Some(battle_manager_encounter_name));
 
-        let battle_manager_encounter_name = State::get_fname(process, &self.module, self.local_player, &[0x0, 0x30, 0x920, 0x190], String::from(""));
-        // timer::set_variable("battle_name", &battle_manager_encounter_name);
-        self.game_state.battle_manager_encounter_name.update(Some(battle_manager_encounter_name));
+            let battle_debug_last_flow_state: Option<Address64> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x920]).ok();
 
-        let battle_debug_last_flow_state: Option<Address64> = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x920]).ok();
-
-        if let Some(address) = battle_debug_last_flow_state {
-            let address: u64 = address.value() + 0x9d8;
-            let battle_debug_last_flow_state = State::read_fstring(&process, address);
-            self.game_state.battle_debug_last_flow_state.update(Some(battle_debug_last_flow_state));
-        } else {
-            self.game_state.battle_debug_last_flow_state.update(Some(String::from("")));
+            if let Some(address) = battle_debug_last_flow_state {
+                let address: u64 = address.value() + 0x9d8;
+                let battle_debug_last_flow_state = State::read_fstring(&process, address);
+                self.game_state.battle_debug_last_flow_state.update(Some(battle_debug_last_flow_state));
+            } else {
+                self.game_state.battle_debug_last_flow_state.update(Some(String::from("")));
+            }
         }
 
         let cs_is_playing_cinematic: bool = process.read_pointer_path(self.local_player, Bit64, &[0x0, 0x30, 0x8a8, 0x238]).unwrap_or(false);
