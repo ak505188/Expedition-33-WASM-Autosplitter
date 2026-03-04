@@ -99,8 +99,8 @@ impl Splits {
     pub fn should_split(&mut self, state: &GameState) -> bool {
         let settings_map = Map::load();
 
-        if state.is_battle_finished() {
-            let battle_name = &state.battle_manager_encounter_name.pair.as_ref().unwrap().old;
+        if state.battle.is_battle_finished() {
+            let battle_name = &state.battle.battle_manager_encounter_name.pair.as_ref().unwrap().old;
             // print_message(&format!("Battle finished! Battle: {}", battle_name));
             let split_key = match self.battle_splits.get(battle_name) {
                 Some(v) => v,
@@ -114,10 +114,9 @@ impl Splits {
             return split_enabled && self.done_splits.insert(split_key.clone());
         }
 
-        if state.has_cutscene_started() {
-            let cutscene_name = &state.cs_cinematic_name.pair.as_ref().unwrap().current;
+        if state.cutscene.has_started() {
             // print_message(&format!("cutscene started: {}", &cutscene_name));
-            let split_key = match self.cutscene_start_splits.get(cutscene_name) {
+            let split_key = match self.cutscene_start_splits.get(state.cutscene.get_name()) {
                 Some(v) => v,
                 None => return false
             };

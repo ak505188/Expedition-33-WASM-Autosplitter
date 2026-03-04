@@ -1,17 +1,15 @@
-use asr::watcher::Watcher;
+use asr::{Process, game_engine::unreal::Module, watcher::Watcher};
+use asr::Address64;
+use asr::PointerSize::Bit64;
 // use asr::print_message;
 
+use crate::helpers;
+use crate::battle::{Battle};
+use crate::cutscene::{Cutscene};
+
 pub struct GameState {
-    pub battle_end_state: Watcher<u8>,
-    pub battle_flow_state: Watcher<u8>,
-    pub battle_manager_encounter_name: Watcher<String>,
-    pub battle_debug_last_flow_state: Watcher<String>,
-    pub cs_cinematic_status: Watcher<u32>,
-    pub cs_cinematic_name: Watcher<String>,
-    pub cs_cinematic_serial_number: Watcher<u32>,
-    pub cs_cinematic_paused: Watcher<bool>,
-    pub cs_is_playing_cinematic: Watcher<bool>,
-    pub cs_event_before_post_cinematic_transition_started: Watcher<bool>,
+    pub battle: Battle,
+    pub cutscene: Cutscene,
     pub is_changing_area: Watcher<bool>,
     pub is_changing_map: Watcher<bool>,
     pub is_pause_menu_visible: Watcher<bool>,
@@ -24,6 +22,62 @@ pub struct GameState {
 }
 
 impl GameState {
+    pub fn new() -> GameState {
+        GameState {
+            battle: Battle::new(),
+            cutscene: Cutscene::new(),
+            is_changing_area: Watcher::new(),
+            is_changing_map: Watcher::new(),
+            is_pause_menu_visible: Watcher::new(),
+            lsw_has_appeared: Watcher::new(),
+            minimap_active: Watcher::new(),
+            pcm_in_game: Watcher::new(),
+            time_played: Watcher::new(),
+            world: Watcher::new(),
+        }
+    }
+
+
+    pub fn update(&mut self, process: &Process, module: &Module, local_player: Address64, build_version: u32) -> &Self {
+        let is_pause_menu_visible: bool = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0xbc8]).unwrap_or(false);
+        self.is_pause_menu_visible.update(Some(is_pause_menu_visible));
+        // timer::set_variable("state", is_pause_menu_visible.to_string().as_str());
+
+        let world: String = helpers::get_fname(process, module, module.g_world(), &[0x0, 0x18], String::from(""));
+        asr::timer::set_variable("world", &world);
+        self.world.update(Some(world));
+
+        let time_played: f64 = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x1f0]).unwrap_or(0.0);
+        asr::timer::set_variable("time_played", &time_played.to_string());
+        self.time_played.update_infallible(time_played);
+
+        let is_changing_area: bool = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0xde8]).unwrap_or(false);
+        self.is_changing_area.update_infallible(is_changing_area);
+
+        let is_changing_map: bool = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x1d0]).unwrap_or(false);
+        self.is_changing_map.update_infallible(is_changing_map);
+
+        let lsw_has_appeared: bool = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0xb08, 0x300]).unwrap_or(false);
+        self.lsw_has_appeared.update_infallible(lsw_has_appeared);
+
+        let pcm_in_game: f32 = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0x348, 0x1390]).unwrap_or(0.0);
+        self.pcm_in_game.update_infallible(pcm_in_game);
+
+        self.battle.update(process, &module, local_player);
+        self.cutscene.update(process, &module, local_player);
+
+        let minimap_active_path;
+        if build_version >= 57661 {
+            minimap_active_path = [0x0, 0x30, 0x980, 0x3d0, 0x368];
+        } else {
+            minimap_active_path = [0x0, 0x30, 0x980, 0x3c8, 0x368];
+        }
+        let minimap_active: bool = process.read_pointer_path(local_player, Bit64, &minimap_active_path).unwrap_or(false);
+        self.minimap_active.update_infallible(minimap_active);
+
+        self
+    }
+
     pub fn is_game_loading(&self) -> bool {
         let world = &self.world.pair.as_ref().unwrap().current;
         world == "Map_Game_Bootstrap" ||
@@ -33,65 +87,31 @@ impl GameState {
         (world != "Level_Main_Menu" && self.pcm_in_game.pair.unwrap().current < 0.5)
     }
 
-    pub fn is_battle_loading(&self) -> bool {
-        if !self.is_in_battle() { return false }
-        let battle_debug_last_flow_state = &self.battle_debug_last_flow_state.pair.as_ref().unwrap().current;
-
-        battle_debug_last_flow_state == "InitBattle" ||
-        battle_debug_last_flow_state == "LoadDependencies" ||
-        battle_debug_last_flow_state == "Dependencies loaded"
-    }
-
-    pub fn is_cutscene_loading(&self) -> bool {
-        self.cs_is_playing_cinematic.pair.unwrap().current && self.cs_cinematic_paused.pair.unwrap().current
-    }
-
     pub fn is_minimap_open(&self) -> bool {
         self.world.pair.as_ref().unwrap().current == "Level_WorldMap_Main_V2" && self.minimap_active.pair.unwrap().current
     }
 
     pub fn is_starting_run(&self, is_ng_plus: bool) -> bool {
         let time_played = self.time_played.pair.unwrap();
-        if is_ng_plus && time_played.current > 10.0 && self.cs_is_playing_cinematic.pair.unwrap().current {
-            let current_cinematic = self.cs_cinematic_name.pair.as_ref().unwrap();
-            return current_cinematic.changed() && current_cinematic.current.contains("MCS_MyFlower")
+        if is_ng_plus && time_played.current > 10.0 && self.cutscene.is_active() {
+            return self.cutscene.has_started() && self.cutscene.get_name().contains("MCS_MyFlower")
         }
 
         time_played.old == 0.0 &&
         time_played.current > 0.0 &&
         time_played.current < 5.0
     }
-
-    pub fn battle_lost(&self) -> bool {
-        if let Some(battle_end_state) = self.battle_end_state.pair {
-            return
-                self.battle_flow_state.pair.unwrap().changed_to(&0) &&
-                battle_end_state.old == 2
-        }
-        false
-    }
-
-    pub fn is_in_battle(&self) -> bool {
-        self.battle_flow_state.pair.unwrap().current == 2
-    }
-
-    /*
-    pub fn is_in_cutscene(&self) -> bool {
-        self.cs_is_playing_cinematic.pair.unwrap().current
-    }
-
-    pub fn is_cutscene_over(&self) -> bool {
-        self.cs_is_playing_cinematic.pair.unwrap().changed_to(&false)
-    }
-    */
-
-    pub fn has_cutscene_started(&self) -> bool {
-        self.cs_cinematic_name.pair.as_ref().unwrap().changed_from(&String::from(""))
-    }
-
-    pub fn is_battle_finished(&self) -> bool {
-        let battle_flow_state = self.battle_flow_state.pair.unwrap();
-        battle_flow_state.changed_from_to(&2, &0) && !self.battle_lost()
-        // (battle_end_state.old == 1 || battle_end_state.old == 3) && battle_flow_state.changed_to(&0)
-    }
 }
+
+// const HEAVY_CINEMATICS: [&str;9] = [
+//     "MCS_GobluOutro",
+//     "MCS_PostDuallist",
+//     "MCS_DiscoveringTheTruth_P2",
+//     "CS_GPE_MonolithInterior_Locomotive_Monoco_To_Lumiere",
+//     "CS_CleasFlyingHouse_DuallisteDeath",
+//     "CS_CleasFlyingHouse_EvequeDeath",
+//     "CS_CleasFlyingHouse_GobluDeath",
+//     "CS_CleasFlyingHouse_LampmasterDeath",
+//     "MCS_MirrorCleaOutro"
+// ];
+
