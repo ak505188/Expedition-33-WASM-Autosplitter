@@ -1,6 +1,6 @@
-# coe33-asr-chatgpt
+# Expedition 33 ASR Autosplitter
 
-An auto splitter for SandFall Win64 Shipping.
+An auto splitter for Expedition 33 using the ASR runtime used in Livesplit One, making it cross-platform compatible.
 
 ## Compilation
 
