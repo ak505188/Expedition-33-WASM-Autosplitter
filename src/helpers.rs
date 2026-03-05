@@ -1,3 +1,4 @@
+use std::path::{Component, Path, PathBuf};
 use asr::string::{ArrayCString, ArrayWString};
 use asr::{Process};
 use asr::{Address};
@@ -34,4 +35,29 @@ pub fn read_fstring(process: &Process, address: u64) -> String {
         Err(_) => String::from("")
     };
     str
+}
+
+pub fn normalize_mnt(path: &Path) -> PathBuf {
+    let mut components = path.components();
+
+    let mut new_path = PathBuf::new();
+
+    // Preserve root if present
+    if let Some(Component::RootDir) = components.next() {
+        new_path.push("/");
+    }
+
+    // Skip "mnt" if it's the first normal component
+    if let Some(Component::Normal(first)) = components.next() {
+        if first != "mnt" {
+            new_path.push(first);
+        }
+    }
+
+    // Add remaining components
+    for c in components {
+        new_path.push(c.as_os_str());
+    }
+
+    new_path
 }

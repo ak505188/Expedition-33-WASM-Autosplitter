@@ -1,7 +1,8 @@
+use std::path::{Path, PathBuf};
 use asr::future::retry;
 use asr::string::{ArrayWString};
 use asr::{set_tick_rate, timer};
-use asr::{Address, Address64, Process, future::next_tick, print_message};
+use asr::{Address64, Process, future::next_tick, print_message};
 use asr::game_engine::unreal::{Module, Version};
 use asr::PointerSize::Bit64;
 use asr::settings::Gui;
@@ -29,21 +30,35 @@ struct State {
     module: Module,
     local_player: Address64,
     build_version: u32,
+    path: String,
     game_state: GameState,
 }
 
 impl State {
-    pub async fn init<'a>(process: &'a Process, base_addr: Address) -> Self {
+    pub async fn init<'a>(process: &'a Process, process_name: &str) -> Self {
+        let base_addr = retry(|| process.get_module_address(process_name)).await;
+        print_message("Found base_addr");
+
+        let path = retry(|| {
+            PROCESS_NAMES.into_iter().find_map(|name| {
+                process.get_module_path(name).ok()
+            })
+        }).await;
+        print_message(&path);
+
         let module = Module::wait_attach(&process, Version::V5_4, base_addr).await;
         print_message("Attached to module.");
         let build_version = State::get_build_version(process, &module).await;
 
         let local_player: Address64 = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38]).expect("Local player error");
 
+        print_message(&State::mods_exist(&path).to_string());
+
         State {
             module,
             local_player,
             build_version,
+            path,
             game_state: GameState::new()
         }
     }
@@ -53,6 +68,21 @@ impl State {
         self.game_state.battle.is_battle_loading() ||
         self.game_state.cutscene.is_cutscene_loading() ||
         self.game_state.is_minimap_open()
+    }
+
+    pub fn mods_exist(path: &String) -> bool {
+        let path = Path::new(&path);
+        let path = helpers::normalize_mnt(path);
+        let path = path.ancestors()
+            .nth(3)
+            .unwrap()
+            .join("Content")
+            .join("Paks");
+            // .join("~mods");
+
+        print_message(path.to_str().unwrap());
+
+        path.exists()
     }
 
     async fn get_build_version(process: &Process, module: &Module) -> u32 {
@@ -98,13 +128,10 @@ async fn main() {
             })
         }).await;
 
-        let base_addr = retry(|| process.get_module_address(process_name)).await;
-        print_message("Found base_addr");
-
         process
             .until_closes(async {
                 // TODO: Load some initial information from the process.
-                let mut state = State::init(&process, base_addr).await;
+                let mut state = State::init(&process, process_name).await;
                 print_message(&format!("{:?}", state));
 
                 set_tick_rate(250.0);
