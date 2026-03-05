@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::process;
 use asr::future::retry;
 use asr::string::{ArrayWString};
 use asr::{set_tick_rate, timer};
@@ -39,12 +40,9 @@ impl State {
         let base_addr = retry(|| process.get_module_address(process_name)).await;
         print_message("Found base_addr");
 
-        let path = retry(|| {
-            PROCESS_NAMES.into_iter().find_map(|name| {
-                process.get_module_path(name).ok()
-            })
-        }).await;
-        print_message(&path);
+        let path = retry(|| process.get_module_path(process_name)).await;
+        print_message(&format!("Exe path: {}", &path));
+        print_message(&format!("File exists: {}", &Path::new(&path).exists().to_string()));
 
         let module = Module::wait_attach(&process, Version::V5_4, base_addr).await;
         print_message("Attached to module.");
@@ -52,7 +50,7 @@ impl State {
 
         let local_player: Address64 = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38]).expect("Local player error");
 
-        print_message(&State::mods_exist(&path).to_string());
+        // print_message(&State::mods_exist(&path).to_string());
 
         State {
             module,
@@ -71,18 +69,18 @@ impl State {
     }
 
     pub fn mods_exist(path: &String) -> bool {
-        let path = Path::new(&path);
-        let path = helpers::normalize_mnt(path);
-        let path = path.ancestors()
-            .nth(3)
-            .unwrap()
-            .join("Content")
-            .join("Paks");
-            // .join("~mods");
-
-        print_message(path.to_str().unwrap());
-
-        path.exists()
+        Path::new(&path).exists()
+        // let path = helpers::normalize_mnt(path);
+        // let path = path.ancestors()
+        //     .nth(3)
+        //     .unwrap()
+        //     .join("Content")
+        //     .join("Paks");
+        //     // .join("~mods");
+        //
+        // print_message(path.to_str().unwrap());
+        //
+        // path.exists()
     }
 
     async fn get_build_version(process: &Process, module: &Module) -> u32 {
