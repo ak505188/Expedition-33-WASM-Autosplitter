@@ -1,4 +1,5 @@
 # Expedition 33 ASR Autosplitter
+Credit goes to Nikoheart for the original asl autosplitter, as well as ISO2768-mK & PlaccidPenguin for edits made to it. This is essentially a WASM port of it, along with some new split points added. This was made because running ASL on linux sucks. You can find the ASL [here](https://github.com/Nikoheartttv/Autosplitters/tree/main/Clair%20Obscur%20Expedition%2033).
 
 An auto splitter for Expedition 33 using the ASR runtime used in Livesplit One, making it cross-platform compatible.
 
