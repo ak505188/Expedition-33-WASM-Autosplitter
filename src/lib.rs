@@ -1,5 +1,4 @@
-use std::path::{Path, PathBuf};
-use std::process;
+use std::path::{Path};
 use asr::future::retry;
 use asr::string::{ArrayWString};
 use asr::{set_tick_rate, timer};
@@ -27,6 +26,12 @@ static PROCESS_NAMES: [&str; 3] = [
     "Sandfall-WinGDK-Shipping.exe",
 ];
 
+static MODS_EXIST_MESSAGE: &str = "
+Clair Obscur: Expedition 33 speedruns requires no mods to be in use.\n
+If you are seeing this message, it means that the '~mods' folder has been detected.\n
+Make sure to remove this folder to stop seeing this message and ensure the validity of a legitimate speedrun.
+";
+
 struct State {
     module: Module,
     local_player: Address64,
@@ -41,16 +46,19 @@ impl State {
         print_message("Found base_addr");
 
         let path = retry(|| process.get_module_path(process_name)).await;
-        print_message(&format!("Exe path: {}", &path));
-        print_message(&format!("File exists: {}", &Path::new(&path).exists().to_string()));
+        print_message("Found path");
+
+        if State::mods_exist(&path) {
+			      panic!("{MODS_EXIST_MESSAGE}");
+        }
+        print_message("No mods detected");
 
         let module = Module::wait_attach(&process, Version::V5_4, base_addr).await;
         print_message("Attached to module.");
+
         let build_version = State::get_build_version(process, &module).await;
 
         let local_player: Address64 = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38]).expect("Local player error");
-
-        // print_message(&State::mods_exist(&path).to_string());
 
         State {
             module,
@@ -69,18 +77,14 @@ impl State {
     }
 
     pub fn mods_exist(path: &String) -> bool {
-        Path::new(&path).exists()
-        // let path = helpers::normalize_mnt(path);
-        // let path = path.ancestors()
-        //     .nth(3)
-        //     .unwrap()
-        //     .join("Content")
-        //     .join("Paks");
-        //     // .join("~mods");
-        //
-        // print_message(path.to_str().unwrap());
-        //
-        // path.exists()
+        let path = Path::new(path).ancestors()
+            .nth(3)
+            .unwrap()
+            .join("Content")
+            .join("Paks")
+            .join("~mods");
+
+        path.exists()
     }
 
     async fn get_build_version(process: &Process, module: &Module) -> u32 {
@@ -140,6 +144,9 @@ async fn main() {
                     match timer::state() {
                         timer::TimerState::NotRunning => {
                             if settings.start && state.game_state.is_starting_run(settings.ng_plus) {
+                                if State::mods_exist(&state.path) {
+                                    panic!("{MODS_EXIST_MESSAGE}");
+                                }
                                 timer::start();
                             } else {
                                 splits.reset();
