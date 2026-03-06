@@ -41,14 +41,14 @@ impl GameState {
     pub fn update(&mut self, process: &Process, module: &Module, local_player: Address64, build_version: u32) -> &Self {
         let is_pause_menu_visible: bool = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0xbc8]).unwrap_or(false);
         self.is_pause_menu_visible.update(Some(is_pause_menu_visible));
-        // timer::set_variable("state", is_pause_menu_visible.to_string().as_str());
+        // asr::timer::set_variable("state", is_pause_menu_visible.to_string().as_str());
 
         let world: String = helpers::get_fname(process, module, module.g_world(), &[0x0, 0x18], String::from(""));
         asr::timer::set_variable("world", &world);
         self.world.update(Some(world));
 
         let time_played: f64 = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x1f0]).unwrap_or(0.0);
-        asr::timer::set_variable("time_played", &time_played.to_string());
+        // asr::timer::set_variable("time_played", &time_played.to_string());
         self.time_played.update_infallible(time_played);
 
         let is_changing_area: bool = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0xde8]).unwrap_or(false);
