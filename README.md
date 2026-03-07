@@ -75,3 +75,5 @@ not work all the time.
     * 0: Not in cinematic
     * 1: In cinematic
     * 5: Cinematic paused
+## Time Played
+- It slows down with slowdown effects, can't be used to calculate battle time accurately.
