@@ -57,6 +57,7 @@ impl State {
         print_message("Attached to module.");
 
         let build_version = State::get_build_version(process, &module).await;
+        // let build_version = 56323;
 
         let local_player: Address64 = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38]).expect("Local player error");
 

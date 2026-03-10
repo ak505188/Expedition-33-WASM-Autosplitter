@@ -31,7 +31,7 @@ impl Cutscene {
 
     pub fn update(&mut self, process: &Process, module: &Module, local_player: Address64) -> &Self {
         let cs_is_playing_cinematic: bool = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0x8a8, 0x238]).unwrap_or(false);
-        // asr::timer::set_variable("is_playing_cinematic", &cs_is_playing_cinematic.to_string());
+        asr::timer::set_variable("is_playing_cinematic", &cs_is_playing_cinematic.to_string());
         self.cs_is_playing_cinematic.update(Some(cs_is_playing_cinematic));
 
         if cs_is_playing_cinematic {
@@ -47,7 +47,7 @@ impl Cutscene {
             // }
 
             let cs_cinematic_name: String = helpers::get_fname(process, &module, local_player, &[0x0, 0x30, 0x8a8, 0xa8, 0x290, 0x18], String::from(""));
-            // asr::timer::set_variable("cs_cinematic_name", cs_cinematic_name.as_str());
+            asr::timer::set_variable("cs_cinematic_name", cs_cinematic_name.as_str());
             self.cs_cinematic_name.update_infallible(cs_cinematic_name.clone());
 
             let cs_cinematic_serial_number: Option<u32> = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0x8a8, 0xa8, 0x2a8]).ok();

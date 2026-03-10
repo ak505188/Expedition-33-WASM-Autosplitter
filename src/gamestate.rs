@@ -40,8 +40,8 @@ impl GameState {
 
     pub fn update(&mut self, process: &Process, module: &Module, local_player: Address64, build_version: u32) -> &Self {
         let is_pause_menu_visible: bool = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0xbc8]).unwrap_or(false);
-        self.is_pause_menu_visible.update(Some(is_pause_menu_visible));
         // asr::timer::set_variable("state", is_pause_menu_visible.to_string().as_str());
+        self.is_pause_menu_visible.update(Some(is_pause_menu_visible));
 
         let world: String = helpers::get_fname(process, module, module.g_world(), &[0x0, 0x18], String::from(""));
         asr::timer::set_variable("world", &world);

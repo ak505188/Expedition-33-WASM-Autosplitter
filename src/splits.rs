@@ -83,6 +83,8 @@ impl Splits {
             ("LS_Title_Act1", "act_1_start"),
             ("LS_Title_Act2", "act_2_start"),
             ("LS_Title_Act3", "act_3_start"),
+            ("MCS_OnwardToMonocosStation", "fb_exit"),
+            ("MCS_MaelleThePyro", "fw_exit"),
             ("CS_GPE_MonolithInterior_Locomotive_MonocoToLumiere", "monolith_train_cs"),
             ("MCS_TomorrowComes", "lumiere_start_cs"),
         ];
@@ -101,7 +103,7 @@ impl Splits {
 
         if state.battle.is_battle_finished() {
             let battle_name = &state.battle.battle_manager_encounter_name.pair.as_ref().unwrap().old;
-            // print_message(&format!("Battle finished! Battle: {}", battle_name));
+            asr::print_message(&format!("Battle finished! Battle: {}, battle lost: {}", battle_name, state.battle.battle_lost().to_string()));
             let split_key = match self.battle_splits.get(battle_name) {
                 Some(v) => v,
                 None => return false
@@ -110,12 +112,13 @@ impl Splits {
                 Some(v) => v.get_bool().unwrap_or(false),
                 None => false
             };
+            asr::print_message(&format!("Split key: {}, split_enabled: {}", split_key, split_enabled.to_string()));
 
             return split_enabled && self.done_splits.insert(split_key.clone());
         }
 
         if state.cutscene.has_started() {
-            // print_message(&format!("cutscene started: {}", &cutscene_name));
+            asr::print_message(&format!("cutscene started: {}", &state.cutscene.get_name()));
             let split_key = match self.cutscene_start_splits.get(state.cutscene.get_name()) {
                 Some(v) => v,
                 None => return false

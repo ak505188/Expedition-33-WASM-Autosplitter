@@ -11,19 +11,15 @@ pub struct Settings {
     pub reset: bool,
 
     /// Start timer when starting NG+
-    #[default = false]
     pub ng_plus: bool,
 
     /// Start of Act Splits
     _start_of_act_splits: Title,
     /// Act 1
-    #[default = true]
     act_1_start: bool,
     /// Act 2
-    #[default = true]
     act_2_start: bool,
     /// Act 3
-    #[default = true]
     act_3_start: bool,
 
     /// Prologue
@@ -42,21 +38,20 @@ pub struct Settings {
     /// First Volesters
     sm_first_volesters: bool,
     /// Évêque
-    #[default = true]
     sm_eveque: bool,
     /// Flying Waters
     _flying_waters: Title,
     /// Curator
     fw_curator: bool,
     /// Goblu
-    #[default = true]
     fw_goblu: bool,
+    /// Flying Waters Exit
+    fw_exit: bool,
     /// Ancient Sanctuary
     _ancient_sanctuary: Title,
     /// Robust Sakapatate
     as_robust_sakapatate: bool,
     /// Ultimate Sakapatate
-    #[default = true]
     as_ultimate_sakapatate: bool,
     /// Gestral Village
     _gestral_village: Title,
@@ -67,17 +62,14 @@ pub struct Settings {
     /// Matthieu The Colossus
     gv_matthieu: bool,
     /// Sciel
-    #[default = true]
     gv_sciel: bool,
     /// Esquie's Nest
     _esquies_nest: Title,
     /// François
-    #[default = true]
     en_francois: bool,
     /// Stone Wave Cliffs
     _stone_wave_cliffs: Title,
     /// Lampmaster
-    #[default = true]
     swc_lampmaster: bool,
 
     /// Act 2
@@ -87,34 +79,30 @@ pub struct Settings {
     /// Chalier
     fb_chalier: bool,
     /// Dualliste
-    #[default = true]
     fb_dualliste: bool,
+    /// Forgotten Battlefield Exit
+    fb_exit: bool,
     /// Monoco Station
     _monoco_station: Title,
     /// Monoco
-    #[default = true]
     ms_monoco: bool,
     /// Stalact
-    #[default = true]
     ms_stalact: bool,
     /// Old Lumiere
     _old_lumiere: Title,
-    /// Ceramic &amp; Steel Chevalière
+    /// Ceramic & Steel Chevalière
     ol_chevaliers: bool,
     /// Renoir
-    #[default = true]
     ol_renoir: bool,
     /// Visages
     _visages: Title,
     /// Mask Keeper
-    #[default = true]
     visages_mask_keeper: bool,
     /// Sirène
     _sirene: Title,
     /// Glissando
     sirene_glissando: bool,
     /// Sirène
-    #[default = true]
     sirene_sirene: bool,
     /// The Monolith
     _monolith: Title,
@@ -123,10 +111,8 @@ pub struct Settings {
     /// Train Cutscene
     monolith_train_cs: bool,
     /// Renoir
-    #[default = true]
     monolith_renoir: bool,
     /// The Paintress
-    #[default = true]
     monolith_paintress: bool,
 
     /// Act 3
@@ -136,13 +122,10 @@ pub struct Settings {
     /// Enter Lumiere
     lumiere_start_cs: bool,
     /// Renoir
-    #[default = true]
     lumiere_renoir: bool,
     /// Verso
-    #[default = true]
     lumiere_verso: bool,
     /// Maelle
-    #[default = true]
     lumiere_maelle: bool,
 
     /// Optional Encounter Splits

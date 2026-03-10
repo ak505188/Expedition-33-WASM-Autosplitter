@@ -1,5 +1,5 @@
 use asr::{Process, game_engine::unreal::Module, watcher::Watcher};
-use asr::Address64;
+use asr::{Address64, print_message};
 use asr::PointerSize::Bit64;
 // use asr::print_message;
 
@@ -24,16 +24,16 @@ impl Battle {
 
     pub fn update(&mut self, process: &Process, module: &Module, local_player: Address64) -> &Self {
         let battle_flow_state: u8 = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0x9b0]).unwrap_or(u8::MAX);
-        // asr::timer::set_variable("battle_flow_state", &battle_flow_state.to_string());
+        asr::timer::set_variable("battle_flow_state", &battle_flow_state.to_string());
         self.battle_flow_state.update_infallible(battle_flow_state);
 
         if battle_flow_state > 0 && battle_flow_state < 3 {
             let battle_end_state: u8 = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0x920, 0x910]).unwrap_or(u8::MAX);
             self.battle_end_state.update_infallible(battle_end_state);
-            // asr::timer::set_variable("battle_end_state", &battle_end_state.to_string());
+            asr::timer::set_variable("battle_end_state", &battle_end_state.to_string());
 
             let battle_manager_encounter_name = helpers::get_fname(process, module, local_player, &[0x0, 0x30, 0x920, 0x190], String::from(""));
-            // asr::timer::set_variable("battle_name", &battle_manager_encounter_name);
+            asr::timer::set_variable("battle_name", &battle_manager_encounter_name);
             self.battle_manager_encounter_name.update(Some(battle_manager_encounter_name));
 
             let battle_debug_last_flow_state: Option<Address64> = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0x920]).ok();
