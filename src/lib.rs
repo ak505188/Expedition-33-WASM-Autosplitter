@@ -163,6 +163,7 @@ async fn main() {
                             } else if
                                 settings.reset &&
                                 state.game_state.world.pair.as_ref().unwrap().changed_to(&String::from("Level_MainMenu")) {
+                                timer::reset();
                                 splits.reset();
                             }
                         },

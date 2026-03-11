@@ -46,9 +46,10 @@ impl Cutscene {
             //     timer::set_variable("cs_cinematic_status", &cs_cinematic_status.to_string());
             // }
 
-            let cs_cinematic_name: String = helpers::get_fname(process, &module, local_player, &[0x0, 0x30, 0x8a8, 0xa8, 0x290, 0x18], String::from(""));
-            asr::timer::set_variable("cs_cinematic_name", cs_cinematic_name.as_str());
-            self.cs_cinematic_name.update_infallible(cs_cinematic_name.clone());
+            if let Some(cs_cinematic_name) = helpers::get_fname(process, &module, local_player, &[0x0, 0x30, 0x8a8, 0xa8, 0x290, 0x18]) {
+                asr::timer::set_variable("cs_cinematic_name", &cs_cinematic_name);
+                self.cs_cinematic_name.update_infallible(cs_cinematic_name);
+            }
 
             let cs_cinematic_serial_number: Option<u32> = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0x8a8, 0xa8, 0x2a8]).ok();
             self.cs_cinematic_serial_number.update(cs_cinematic_serial_number);

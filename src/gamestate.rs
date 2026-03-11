@@ -43,9 +43,10 @@ impl GameState {
         // asr::timer::set_variable("state", is_pause_menu_visible.to_string().as_str());
         self.is_pause_menu_visible.update(Some(is_pause_menu_visible));
 
-        let world: String = helpers::get_fname(process, module, module.g_world(), &[0x0, 0x18], String::from(""));
-        asr::timer::set_variable("world", &world);
-        self.world.update(Some(world));
+        if let Some(world) = helpers::get_fname(process, module, module.g_world(), &[0x0, 0x18]) {
+            asr::timer::set_variable("world", &world);
+            self.world.update_infallible(world);
+        }
 
         let time_played: f64 = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x1f0]).unwrap_or(0.0);
         // asr::timer::set_variable("time_played", &time_played.to_string());

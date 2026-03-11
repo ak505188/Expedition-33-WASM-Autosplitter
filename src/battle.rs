@@ -1,7 +1,6 @@
 use asr::{Process, game_engine::unreal::Module, watcher::Watcher};
-use asr::{Address64, print_message};
+use asr::{Address64};
 use asr::PointerSize::Bit64;
-// use asr::print_message;
 
 use crate::helpers;
 
@@ -32,18 +31,18 @@ impl Battle {
             self.battle_end_state.update_infallible(battle_end_state);
             asr::timer::set_variable("battle_end_state", &battle_end_state.to_string());
 
-            let battle_manager_encounter_name = helpers::get_fname(process, module, local_player, &[0x0, 0x30, 0x920, 0x190], String::from(""));
-            asr::timer::set_variable("battle_name", &battle_manager_encounter_name);
-            self.battle_manager_encounter_name.update(Some(battle_manager_encounter_name));
+            if let Some(battle_manager_encounter_name) = helpers::get_fname(process, module, local_player, &[0x0, 0x30, 0x920, 0x190]) {
+                asr::timer::set_variable("battle_name", &battle_manager_encounter_name);
+                self.battle_manager_encounter_name.update_infallible(battle_manager_encounter_name);
+            }
 
             let battle_debug_last_flow_state: Option<Address64> = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0x920]).ok();
 
             if let Some(address) = battle_debug_last_flow_state {
                 let address: u64 = address.value() + 0x9d8;
-                let battle_debug_last_flow_state = helpers::read_fstring(&process, address);
-                self.battle_debug_last_flow_state.update(Some(battle_debug_last_flow_state));
-            } else {
-                self.battle_debug_last_flow_state.update(Some(String::from("")));
+                if let Some(battle_debug_last_flow_state) = helpers::read_fstring(&process, address) {
+                    self.battle_debug_last_flow_state.update_infallible(battle_debug_last_flow_state);
+                }
             }
         }
 
