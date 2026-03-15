@@ -11,8 +11,6 @@ pub struct Splits {
     area_splits: HashMap<String, String>,
 }
 
-// Hidden Gestral Arena: SmallLevel_YF_Zone_01
-
 impl Splits {
     pub fn new() -> Splits {
         let done_splits: HashSet<String> = HashSet::new();
@@ -144,6 +142,10 @@ impl Splits {
             let old_area = &state.world.pair.as_ref().unwrap().old;
             let new_area = &state.world.pair.as_ref().unwrap().current;
             asr::print_message(&format!("area_changed from {old_area} to {new_area}"));
+
+            if old_area == "Level_MainMenu" || new_area == "Level_MainMenu" {
+                return false;
+            }
 
             if let Some(new_area_split_key) = self.area_splits.get(new_area) {
                 let new_area_split_key = format!("{new_area_split_key}_enter");
