@@ -43,7 +43,7 @@ impl GameState {
         // asr::timer::set_variable("state", is_pause_menu_visible.to_string().as_str());
         self.is_pause_menu_visible.update(Some(is_pause_menu_visible));
 
-        if let Some(world) = helpers::get_fname(process, module, module.g_world(), &[0x0, 0x18]) {
+        if let Some(world) = helpers::get_fname(process, module, module.g_world(), &[0x0, 0x18]).filter(|s| s != "None") {
             asr::timer::set_variable("world", &world);
             self.world.update_infallible(world);
         }
@@ -53,6 +53,7 @@ impl GameState {
         self.time_played.update_infallible(time_played);
 
         let is_changing_area: bool = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0xde8]).unwrap_or(false);
+
         self.is_changing_area.update_infallible(is_changing_area);
 
         let is_changing_map: bool = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x1d0]).unwrap_or(false);
@@ -90,6 +91,10 @@ impl GameState {
 
     pub fn is_minimap_open(&self) -> bool {
         self.world.pair.as_ref().unwrap().current == "Level_WorldMap_Main_V2" && self.minimap_active.pair.unwrap().current
+    }
+
+    pub fn area_changed(&self) -> bool {
+        self.world.pair.as_ref().unwrap().changed()
     }
 
     pub fn is_starting_run(&self, is_ng_plus: bool) -> bool {

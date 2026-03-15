@@ -166,6 +166,13 @@ pub struct Settings {
     /// Petank
     as_petank: bool,
 
+    /// Hidden Gestral Arena
+    _hidden_gestral_arena: Title,
+    /// Enter Hidden Gestral Arena
+    hidden_gestral_arena_enter: bool,
+    /// Exit Hidden Gestral Arena
+    hidden_gestral_arena_exit: bool,
+
     /// Old Lumiere
     _ol_optionals: Title,
     /// Chromatic Danseuse

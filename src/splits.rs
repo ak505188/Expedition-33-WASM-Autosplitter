@@ -8,7 +8,10 @@ pub struct Splits {
     done_splits: HashSet<String>,
     battle_splits: HashMap<String, String>,
     cutscene_start_splits: HashMap<String, String>,
+    area_splits: HashMap<String, String>,
 }
+
+// Hidden Gestral Arena: SmallLevel_YF_Zone_01
 
 impl Splits {
     pub fn new() -> Splits {
@@ -91,10 +94,17 @@ impl Splits {
         let cutscene_start_splits = cutscene_start_splits.map(|(a, b)| (a.to_string(), b.to_string()));
         let cutscene_start_splits = HashMap::from(cutscene_start_splits);
 
+        let area_splits = [
+            ("SmallLevel_YF_Zone_01", "hidden_gestral_arena")
+        ];
+        let area_splits = area_splits.map(|(a, b)| (a.to_string(), b.to_string()));
+        let area_splits = HashMap::from(area_splits);
+
         Splits {
             done_splits,
             battle_splits,
             cutscene_start_splits,
+            area_splits,
         }
     }
 
@@ -128,6 +138,26 @@ impl Splits {
                 None => false
             };
             return split_enabled && self.done_splits.insert(split_key.clone());
+        }
+
+        if state.area_changed() {
+            let old_area = &state.world.pair.as_ref().unwrap().old;
+            let new_area = &state.world.pair.as_ref().unwrap().current;
+            asr::print_message(&format!("area_changed from {old_area} to {new_area}"));
+
+            if let Some(new_area_split_key) = self.area_splits.get(new_area) {
+                let new_area_split_key = format!("{new_area_split_key}_enter");
+                if let Some(split_enabled) = settings_map.get(&new_area_split_key) {
+                    return split_enabled.get_bool().unwrap_or(false) && self.done_splits.insert(new_area_split_key.clone());
+                }
+            }
+
+            if let Some(old_area_split_key) = self.area_splits.get(old_area) {
+                let old_area_split_key = format!("{old_area_split_key}_exit");
+                if let Some(split_enabled) = settings_map.get(&old_area_split_key) {
+                    return split_enabled.get_bool().unwrap_or(false) && self.done_splits.insert(old_area_split_key.clone());
+                }
+            }
         }
 
         false
