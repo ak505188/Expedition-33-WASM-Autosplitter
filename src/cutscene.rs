@@ -38,8 +38,6 @@ impl Cutscene {
             let cs_cinematic_paused: bool = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0x8a8, 0x239]).unwrap_or(false);
             self.cs_cinematic_paused.update(Some(cs_cinematic_paused));
 
-            // TODO: Handle the unwrap_or here properly, u32::MAX is a filler value that shouldn't
-            // break logic.
             let cs_cinematic_status: Option<u32> = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0x8a8, 0xa8, 0x288]).ok();
             self.cs_cinematic_status.update(cs_cinematic_status);
             // if let Some(cs_cinematic_status) = cs_cinematic_status {
@@ -66,7 +64,7 @@ impl Cutscene {
     }
 
     pub fn has_started(&self) -> bool {
-        self.cs_cinematic_name.pair.as_ref().unwrap().changed_from(&String::from(""))
+        self.cs_cinematic_name.pair.as_ref().unwrap().changed()
     }
 
     pub fn is_active(&self) -> bool {
