@@ -31,14 +31,13 @@ impl Splits {
             ("EN_Francois", "en_francois"),
             ("SC_LampMaster", "swc_lampmaster"),
             ("FB_Chalier_GradientCounterTutorial*1", "fb_chalier"),
-            ("FB_DuallisteLR", "fb_dualliste" ),
+            ("FB_DuallisteLR", "fb_dualliste"),
             ("MS_Monoco", "ms_monoco"),
             ("MM_Stalact_GradientAttackTutorial*1", "ms_stalact"),
             ("OL_VersoDisappears_Chevaliere*2", "ol_chevaliers"),
             ("OL_MirrorRenoir_FirstFight", "ol_renoir"),
             ("MF_Axon_Visages", "visages_mask_keeper"),
             ("SI_Glissando*1", "sirene_glissando"),
-            ("SI_Axon_Sirene", "sirene_sirene"),
             ("SI_Axon_Sirene", "sirene_sirene"),
             ("ML_PaintressIntro", "monolith_feetress"),
             ("MM_MirrorRenoir", "monolith_renoir"),
@@ -77,8 +76,10 @@ impl Splits {
             ("Boss_Duolliste_P1", "et_duolliste"),
             ("Boss_SimonALPHA*1", "et_simon_tds"),
         ];
-        let battle_splits = battle_splits.map(|(a, b)| (a.to_string(), b.to_string()));
-        let battle_splits = HashMap::from(battle_splits);
+        let battle_splits = battle_splits
+            .iter()
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .collect();
 
         let cutscene_start_splits = [
             ("LS_Title_Act1", "act_1_start"),
@@ -89,14 +90,18 @@ impl Splits {
             ("CS_GPE_MonolithInterior_Locomotive_MonocoToLumiere", "monolith_train_cs"),
             ("MCS_TomorrowComes", "lumiere_start_cs"),
         ];
-        let cutscene_start_splits = cutscene_start_splits.map(|(a, b)| (a.to_string(), b.to_string()));
-        let cutscene_start_splits = HashMap::from(cutscene_start_splits);
+        let cutscene_start_splits = cutscene_start_splits
+            .iter()
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .collect();
 
         let area_splits = [
             ("SmallLevel_YF_Zone_01", "hidden_gestral_arena")
         ];
-        let area_splits = area_splits.map(|(a, b)| (a.to_string(), b.to_string()));
-        let area_splits = HashMap::from(area_splits);
+        let area_splits = area_splits
+            .iter()
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .collect();
 
         Splits {
             done_splits,
