@@ -52,7 +52,7 @@ not work all the time.
 - [x] New Game+ Support
 - [x] Reset support
 - [x] Properly wait for Build Version, currently soft locks
-- [ ] Mods folder check
+- [x] Mods folder check
 - [ ] Load remove long loads post cutscenes (broken in ASL)
 
 ## New Split Points

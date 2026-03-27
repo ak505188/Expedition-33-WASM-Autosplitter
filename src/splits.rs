@@ -111,36 +111,38 @@ impl Splits {
         }
     }
 
-    pub fn should_split(&mut self, state: &GameState) -> bool {
+    pub fn split_is_enabled(split_key: &String) -> bool {
         let settings_map = Map::load();
+        settings_map
+            .get(split_key)
+            .and_then(|v| v.get_bool())
+            .unwrap_or(false)
+    }
 
+    // Inserts split into done_splits if split is enabled, returns result
+    pub fn insert_split(&mut self, split_key: String) -> bool {
+        let split_enabled = Splits::split_is_enabled(&split_key);
+        split_enabled && self.done_splits.insert(split_key)
+    }
+
+    pub fn should_split(&mut self, state: &GameState) -> bool {
         if state.battle.is_battle_finished() {
             let battle_name = &state.battle.battle_manager_encounter_name.pair.as_ref().unwrap().old;
             asr::print_message(&format!("Battle finished! Battle: {}, battle lost: {}", battle_name, state.battle.battle_lost().to_string()));
-            let split_key = match self.battle_splits.get(battle_name) {
-                Some(v) => v,
-                None => return false
-            };
-            let split_enabled: bool = match settings_map.get(split_key) {
-                Some(v) => v.get_bool().unwrap_or(false),
-                None => false
-            };
-            asr::print_message(&format!("Split key: {}, split_enabled: {}", split_key, split_enabled.to_string()));
 
-            return split_enabled && self.done_splits.insert(split_key.clone());
+            let Some(split_key) = self.battle_splits.get(battle_name).cloned() else {
+                return false;
+            };
+            return self.insert_split(split_key);
         }
 
         if state.cutscene.has_started() {
-            asr::print_message(&format!("cutscene started: {}", &state.cutscene.get_name()));
-            let split_key = match self.cutscene_start_splits.get(state.cutscene.get_name()) {
-                Some(v) => v,
-                None => return false
+            let cutscene_name = state.cutscene.get_name();
+            asr::print_message(&format!("cutscene started: {}", &cutscene_name));
+            let Some(split_key) = self.cutscene_start_splits.get(cutscene_name).cloned() else {
+                return false;
             };
-            let split_enabled: bool = match settings_map.get(split_key) {
-                Some(v) => v.get_bool().unwrap_or(false),
-                None => false
-            };
-            return split_enabled && self.done_splits.insert(split_key.clone());
+            return self.insert_split(split_key);
         }
 
         if state.area_changed() {
@@ -154,15 +156,15 @@ impl Splits {
 
             if let Some(new_area_split_key) = self.area_splits.get(new_area) {
                 let new_area_split_key = format!("{new_area_split_key}_enter");
-                if let Some(split_enabled) = settings_map.get(&new_area_split_key) {
-                    return split_enabled.get_bool().unwrap_or(false) && self.done_splits.insert(new_area_split_key.clone());
+                if Splits::split_is_enabled(&new_area_split_key) {
+                    return self.done_splits.insert(new_area_split_key.clone());
                 }
             }
 
             if let Some(old_area_split_key) = self.area_splits.get(old_area) {
                 let old_area_split_key = format!("{old_area_split_key}_exit");
-                if let Some(split_enabled) = settings_map.get(&old_area_split_key) {
-                    return split_enabled.get_bool().unwrap_or(false) && self.done_splits.insert(old_area_split_key.clone());
+                if Splits::split_is_enabled(&old_area_split_key) {
+                    return self.done_splits.insert(old_area_split_key.clone());
                 }
             }
         }
