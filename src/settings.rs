@@ -90,12 +90,18 @@ pub struct Settings {
     ms_stalact: bool,
     /// Old Lumiere
     _old_lumiere: Title,
-    /// Ceramic & Steel Chevalière
+    /// Ceramic and Steel Chevalière
     ol_chevaliers: bool,
     /// Renoir
     ol_renoir: bool,
     /// Visages
     _visages: Title,
+    /// Joy Mask
+    visages_joy_mask: bool,
+    /// Sadness Mask
+    visages_sadness_mask: bool,
+    /// Angry Mask
+    visages_angry_mask: bool,
     /// Mask Keeper
     visages_mask_keeper: bool,
     /// Sirène
