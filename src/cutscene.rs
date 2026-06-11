@@ -3,7 +3,13 @@ use asr::Address64;
 use asr::PointerSize::Bit64;
 // use asr::print_message;
 
-use crate::helpers;
+use crate::helpers::{get_fname, print_debug};
+
+macro_rules! debug_watchers {
+    ($self:ident, $($field:ident),+ $(,)?) => {
+        $( print_debug(stringify!($field), &$self.$field); )+
+    };
+}
 
 pub struct Cutscene {
     pub cs_cinematic_status: Watcher<u32>,
@@ -22,10 +28,10 @@ impl Cutscene {
         Cutscene {
             cs_cinematic_status: Watcher::new(),
             cs_cinematic_name: cs_cinematic_name,
-            cs_cinematic_serial_number: Watcher::new(),
             cs_cinematic_paused: Watcher::new(),
-            cs_is_playing_cinematic: Watcher::new(),
+            cs_cinematic_serial_number: Watcher::new(),
             cs_event_before_post_cinematic_transition_started: Watcher::new(),
+            cs_is_playing_cinematic: Watcher::new(),
         }
     }
 
@@ -44,7 +50,7 @@ impl Cutscene {
             //     timer::set_variable("cs_cinematic_status", &cs_cinematic_status.to_string());
             // }
 
-            if let Some(cs_cinematic_name) = helpers::get_fname(process, &module, local_player, &[0x0, 0x30, 0x8a8, 0xa8, 0x290, 0x18]) {
+            if let Some(cs_cinematic_name) = get_fname(process, &module, local_player, &[0x0, 0x30, 0x8a8, 0xa8, 0x290, 0x18]) {
                 asr::timer::set_variable("cs_cinematic_name", &cs_cinematic_name);
                 self.cs_cinematic_name.update_infallible(cs_cinematic_name);
             }
@@ -55,6 +61,9 @@ impl Cutscene {
 
         let cs_event_before_post_cinematic_transition_started: bool = process.read_pointer_path(local_player, Bit64, &[0x0, 0x30, 0x8a8, 0x298]).unwrap_or(false);
         self.cs_event_before_post_cinematic_transition_started.update(Some(cs_event_before_post_cinematic_transition_started));
+
+        #[cfg(debug_assertions)]
+        self.print_debug_info();
 
         self
     }
@@ -75,9 +84,22 @@ impl Cutscene {
         &self.cs_cinematic_name.pair.as_ref().unwrap().current
     }
 
+    #[cfg(debug_assertions)]
+    pub fn print_debug_info(&self) {
+        debug_watchers!(self,
+            cs_cinematic_status,
+            cs_cinematic_name,
+            cs_cinematic_serial_number,
+            cs_cinematic_paused,
+            cs_is_playing_cinematic,
+            cs_event_before_post_cinematic_transition_started,
+        );
+    }
+
     /*
     pub fn is_over(&self) -> bool {
         self.cs_is_playing_cinematic.pair.unwrap().changed_to(&false)
     }
     */
 }
+
