@@ -11,7 +11,7 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 [[package]]
 name = "asr"
 version = "0.1.0"
-source = "git+https://github.com/LiveSplit/asr#64d2779d7339fa5d7058524ca33d5c94a068fe01"
+source = "git+https://github.com/LiveSplit/asr#713579c29296ff0aa2479534f88f3d4deb4ceef1"
 dependencies = [
  "arrayvec",
  "asr-derive",
@@ -23,7 +23,7 @@ dependencies = [
 [[package]]
 name = "asr-derive"
 version = "0.1.0"
-source = "git+https://github.com/LiveSplit/asr#64d2779d7339fa5d7058524ca33d5c94a068fe01"
+source = "git+https://github.com/LiveSplit/asr#713579c29296ff0aa2479534f88f3d4deb4ceef1"
 dependencies = [
  "heck",
  "proc-macro2",
