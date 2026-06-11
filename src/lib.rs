@@ -92,8 +92,6 @@ impl State {
         print_message("Trying to get build version");
 
         let build_version: u32 = retry(|| {
-            // TODO: If running on game startup can get build version 999999.
-            // Add check, run again if 999999
             let build_version: ArrayWString<8> = process.read_pointer_path(module.g_engine(), Bit64, &[0x0, 0x10a8, 0x38, 0x0, 0x30, 0x878, 0x440, 0x1a0, 0x28, 0x0]).ok()?;
             let build_version = String::from_utf16(build_version.as_slice()).ok()?;
             let build_version = build_version.parse::<u32>().ok()?;
